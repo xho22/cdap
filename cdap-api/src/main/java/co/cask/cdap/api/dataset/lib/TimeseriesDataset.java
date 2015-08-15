@@ -23,7 +23,6 @@ import co.cask.cdap.api.dataset.table.Put;
 import co.cask.cdap.api.dataset.table.Row;
 import co.cask.cdap.api.dataset.table.Table;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 
 import java.util.ArrayList;
@@ -214,8 +213,9 @@ abstract class TimeseriesDataset extends AbstractDataset {
    */
   final Iterator<Entry> readInternal(byte[] key, long startTime, long endTime, byte[]... tags) {
     // validating params
-    Preconditions.checkArgument(startTime <= endTime,
-                                "Provided time range condition is incorrect: startTime > endTime");
+    if (startTime > endTime) {
+      throw new IllegalArgumentException("Provided time range condition is incorrect: startTime > endTime");
+    }
 
     return new EntryScanner(key, startTime, endTime, tags);
   }
