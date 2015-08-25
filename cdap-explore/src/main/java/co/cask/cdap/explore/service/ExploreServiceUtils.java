@@ -25,6 +25,7 @@ import co.cask.cdap.explore.service.hive.Hive12ExploreService;
 import co.cask.cdap.explore.service.hive.Hive13ExploreService;
 import co.cask.cdap.explore.service.hive.Hive14ExploreService;
 import co.cask.cdap.format.RecordFormats;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -33,24 +34,38 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.io.ByteStreams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.twill.api.ClassAcceptor;
 import org.apache.twill.internal.utils.Dependencies;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.commons.GeneratorAdapter;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.jar.JarOutputStream;
 import java.util.regex.Pattern;
 
 /**
@@ -322,12 +337,15 @@ public class ExploreServiceUtils {
    * Nothing is returned if the classLoader does not contain the className.
    */
   public static Set<File> traceDependencies(String className, ClassLoader classLoader,
-                                            final ClassAcceptor classAcceptor)
-    throws IOException {
+                                            final ClassAcceptor classAcceptor) throws IOException {
     ClassLoader usingCL = classLoader;
     if (usingCL == null) {
       usingCL = ExploreRuntimeModule.class.getClassLoader();
     }
+
+    final String rewritingClassName = HiveAuthFactory.class.getName();
+    final List<File> rewritingFiles = new ArrayList<>();
+
     final Set<File> jarFiles = Sets.newHashSet();
 
     Dependencies.findClassDependencies(
@@ -339,6 +357,10 @@ public class ExploreServiceUtils {
             return false;
           }
 
+          if (rewritingClassName.equals(className)) {
+            rewritingFiles.add(new File(classPathUrl.getFile()));
+          }
+
           jarFiles.add(new File(classPathUrl.getFile()));
           return true;
         }
@@ -346,7 +368,65 @@ public class ExploreServiceUtils {
       className
     );
 
+    for (File rewritingFile : rewritingFiles) {
+
+    }
+    jarFiles.removeAll(rewritingFiles);
+
     return jarFiles;
+  }
+
+  @VisibleForTesting
+  static File rewriteHiveAuthFactory(File sourceJar, File targetJar) throws IOException {
+    try (
+      JarFile input = new JarFile(sourceJar);
+      JarOutputStream output = new JarOutputStream(new FileOutputStream(targetJar))
+    ) {
+      String hiveAuthFactoryPath = HiveAuthFactory.class.getName().replace('.', '/') + ".class";
+
+      Enumeration<JarEntry> sourceEntries = input.entries();
+      while (sourceEntries.hasMoreElements()) {
+        JarEntry entry = sourceEntries.nextElement();
+        output.putNextEntry(new JarEntry(entry.getName()));
+
+        try (InputStream entryInputStream = input.getInputStream(entry)) {
+          if (!hiveAuthFactoryPath.equals(entry.getName())) {
+            ByteStreams.copy(entryInputStream, output);
+            continue;
+          }
+
+          // Rewrite the bytecode of HiveAuthFactory.loginFromKeytab method to a no-op method
+          ClassReader cr = new ClassReader(entryInputStream);
+          ClassNode classNode = new ClassNode();
+          cr.accept(classNode, 0);
+
+          List<MethodNode> methods = classNode.methods;
+          List<MethodNode> newMethods = new ArrayList<>();
+
+          for (MethodNode methodNode : methods) {
+            if ("loginFromKeytab".equals(methodNode.name)) {
+              String[] exceptions = ((List<String>) methodNode.exceptions).toArray(
+                new String[methodNode.exceptions.size()]);
+              MethodNode mn = new MethodNode(methodNode.access, methodNode.name,
+                                             methodNode.desc, methodNode.signature, exceptions);
+              GeneratorAdapter adapter = new GeneratorAdapter(mn, methodNode.access, methodNode.name, methodNode.desc);
+              adapter.returnValue();
+              newMethods.add(mn);
+            } else {
+              newMethods.add(methodNode);
+            }
+          }
+          classNode.methods.clear();
+          classNode.methods.addAll(newMethods);
+
+          ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+          classNode.accept(cw);
+          output.write(cw.toByteArray());
+        }
+      }
+
+      return targetJar;
+    }
   }
 
   /**
