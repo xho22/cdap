@@ -53,11 +53,15 @@ import co.cask.cdap.proto.id.ProgramRunId;
 import co.cask.http.BodyConsumer;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.apache.twill.filesystem.Location;
 import org.apache.twill.filesystem.LocationFactory;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -71,13 +75,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
  * Client tool for AppFabricHttpHandler.
  */
+@Singleton
 public class AppFabricClient {
   private static final Logger LOG = LoggerFactory.getLogger(AppFabricClient.class);
   private static final Gson GSON = new GsonBuilder()
@@ -89,26 +96,32 @@ public class AppFabricClient {
   private static final Type RUN_RECORDS_TYPE = new TypeToken<List<RunRecord>>() { }.getType();
   private static final Type SCHEDULES_TYPE = new TypeToken<List<ScheduleSpecification>>() { }.getType();
 
-  private final LocationFactory locationFactory;
   private final AppLifecycleHttpHandler appLifecycleHttpHandler;
   private final ProgramLifecycleHttpHandler programLifecycleHttpHandler;
   private final WorkflowHttpHandler workflowHttpHandler;
   private final NamespaceHttpHandler namespaceHttpHandler;
   private final NamespaceAdmin namespaceAdmin;
 
+  private final LoadingCache<DeploymentKey, Location> deployJarCache;
+
   @Inject
-  public AppFabricClient(LocationFactory locationFactory,
+  public AppFabricClient(final LocationFactory locationFactory,
                          AppLifecycleHttpHandler appLifecycleHttpHandler,
                          ProgramLifecycleHttpHandler programLifecycleHttpHandler,
                          NamespaceHttpHandler namespaceHttpHandler,
                          NamespaceAdmin namespaceAdmin,
                          WorkflowHttpHandler workflowHttpHandler) {
-    this.locationFactory = locationFactory;
     this.appLifecycleHttpHandler = appLifecycleHttpHandler;
     this.programLifecycleHttpHandler = programLifecycleHttpHandler;
     this.namespaceHttpHandler = namespaceHttpHandler;
     this.namespaceAdmin = namespaceAdmin;
     this.workflowHttpHandler = workflowHttpHandler;
+    this.deployJarCache = CacheBuilder.newBuilder().build(new CacheLoader<DeploymentKey, Location>() {
+      @Override
+      public Location load(DeploymentKey key) throws Exception {
+        return AppJarHelper.createDeploymentJar(locationFactory, key.cls, key.extraFiles);
+      }
+    });
   }
 
   private String getNamespacePath(String namespaceId) {
@@ -372,7 +385,7 @@ public class AppFabricClient {
 
     Preconditions.checkNotNull(applicationClz, "Application cannot be null.");
 
-    Location deployedJar = AppJarHelper.createDeploymentJar(locationFactory, applicationClz, bundleEmbeddedJars);
+    Location deployedJar = deployJarCache.getUnchecked(new DeploymentKey(applicationClz, bundleEmbeddedJars));
     LOG.info("Created deployedJar at {}", deployedJar);
 
     String archiveName = String.format("%s-1.0.%d.jar", applicationClz.getSimpleName(), System.currentTimeMillis());
@@ -486,5 +499,35 @@ public class AppFabricClient {
                                                        programId.getApplication(),
                                                        programId.getType().getCategoryName(), programId.getProgram());
     verifyResponse(HttpResponseStatus.OK, mockResponder.getStatus(), "Saving runtime arguments failed");
+  }
+
+  /**
+   * Class being used as the deployment cache key.
+   */
+  private static final class DeploymentKey {
+    private final Class<?> cls;
+    private final File[] extraFiles;
+
+    private DeploymentKey(Class<?> cls, File[] extraFiles) {
+      this.cls = cls;
+      this.extraFiles = extraFiles;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      DeploymentKey that = (DeploymentKey) o;
+      return Objects.equals(cls, that.cls) && Arrays.equals(extraFiles, that.extraFiles);
+    }
+
+    @Override
+    public int hashCode() {
+      return cls.hashCode() * 31 + Arrays.hashCode(extraFiles);
+    }
   }
 }
