@@ -27,12 +27,10 @@ import co.cask.cdap.api.plugin.PluginClass;
 import co.cask.cdap.app.DefaultApplicationContext;
 import co.cask.cdap.app.MockAppConfigurer;
 import co.cask.cdap.app.program.ManifestFields;
-import co.cask.cdap.app.runtime.spark.SparkRuntimeUtils;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.discovery.StickyEndpointStrategy;
 import co.cask.cdap.common.io.Locations;
-import co.cask.cdap.common.lang.ProgramResources;
 import co.cask.cdap.common.namespace.NamespaceAdmin;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
 import co.cask.cdap.explore.jdbc.ExploreDriver;
@@ -45,7 +43,6 @@ import co.cask.cdap.proto.Id;
 import co.cask.cdap.proto.NamespaceMeta;
 import co.cask.cdap.proto.artifact.AppRequest;
 import co.cask.cdap.proto.artifact.ArtifactRange;
-import co.cask.cdap.proto.artifact.ArtifactSummary;
 import co.cask.cdap.proto.id.ApplicationId;
 import co.cask.cdap.proto.id.ArtifactId;
 import co.cask.cdap.proto.id.Ids;
@@ -65,7 +62,6 @@ import com.google.common.io.Files;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
-import org.apache.twill.api.ClassAcceptor;
 import org.apache.twill.discovery.Discoverable;
 import org.apache.twill.discovery.DiscoveryServiceClient;
 import org.apache.twill.filesystem.Location;
@@ -75,7 +71,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Collections;
@@ -91,24 +86,6 @@ import javax.annotation.Nullable;
 public class UnitTestManager implements TestManager {
 
   private static final Gson GSON = new Gson();
-  private static final ClassAcceptor CLASS_ACCEPTOR = new ClassAcceptor() {
-    final Set<String> visibleResources = ProgramResources.getVisibleResources();
-
-    @Override
-    public boolean accept(String className, URL classUrl, URL classPathUrl) {
-      String resourceName = className.replace('.', '/') + ".class";
-      if (visibleResources.contains(resourceName)) {
-        return false;
-      }
-      // Always includes Scala class. It is for CDAP-5168
-      if (resourceName.startsWith("scala/")) {
-        return true;
-      }
-      // If it is loading by spark framework, don't include it in the app JAR
-      return !SparkRuntimeUtils.SPARK_PROGRAM_CLASS_LOADER_FILTER.acceptResource(resourceName);
-    }
-  };
-
   private final AppFabricClient appFabricClient;
   private final DatasetFramework datasetFramework;
   private final TransactionSystemClient txSystemClient;
@@ -171,24 +148,21 @@ public class UnitTestManager implements TestManager {
   public ApplicationManager deployApplication(Id.Namespace namespace, Class<? extends Application> applicationClz,
                                               @Nullable Config configObject, File... bundleEmbeddedJars) {
     Preconditions.checkNotNull(applicationClz, "Application class cannot be null.");
+    String appConfig = "";
     Type configType = Artifacts.getConfigType(applicationClz);
 
     try {
-      ArtifactId artifactId = new ArtifactId(namespace.getId(), applicationClz.getSimpleName(), "1.0-SNAPSHOT");
-      addAppArtifact(artifactId, applicationClz);
-
-      if (configObject == null) {
+      if (configObject != null) {
+        appConfig = GSON.toJson(configObject);
+      } else {
         configObject = (Config) TypeToken.of(configType).getRawType().newInstance();
       }
 
       Application app = applicationClz.newInstance();
       MockAppConfigurer configurer = new MockAppConfigurer(app);
       app.configure(configurer, new DefaultApplicationContext<>(configObject));
+      appFabricClient.deployApplication(namespace, applicationClz, appConfig, bundleEmbeddedJars);
       ApplicationId applicationId = new ApplicationId(namespace.getId(), configurer.getName());
-
-      ArtifactSummary artifactSummary = new ArtifactSummary(artifactId.getArtifact(), artifactId.getVersion());
-      appFabricClient.deployApplication(applicationId.toId(),
-                                        new AppRequest(artifactSummary, configObject));
       return appManagerFactory.create(applicationId.toId());
     } catch (Exception e) {
       throw Throwables.propagate(e);
@@ -225,7 +199,9 @@ public class UnitTestManager implements TestManager {
 
   @Override
   public ArtifactManager addAppArtifact(ArtifactId artifactId, Class<?> appClass) throws Exception {
-    return addAppArtifact(artifactId, appClass, new String[0]);
+    Location appJar = AppJarHelper.createDeploymentJar(locationFactory, appClass, new Manifest());
+    addArtifact(artifactId, appJar);
+    return artifactManagerFactory.create(artifactId);
   }
 
   @Override
@@ -237,10 +213,8 @@ public class UnitTestManager implements TestManager {
   public ArtifactManager addAppArtifact(ArtifactId artifactId, Class<?> appClass,
                                         String... exportPackages) throws Exception {
     Manifest manifest = new Manifest();
-    if (exportPackages.length > 0) {
-      manifest.getMainAttributes().put(ManifestFields.EXPORT_PACKAGE, Joiner.on(',').join(exportPackages));
-    }
-    Location appJar = AppJarHelper.createDeploymentJar(locationFactory, appClass, manifest, CLASS_ACCEPTOR);
+    manifest.getMainAttributes().put(ManifestFields.EXPORT_PACKAGE, Joiner.on(',').join(exportPackages));
+    Location appJar = AppJarHelper.createDeploymentJar(locationFactory, appClass, manifest);
     addArtifact(artifactId, appJar);
     return artifactManagerFactory.create(artifactId);
   }
@@ -253,7 +227,7 @@ public class UnitTestManager implements TestManager {
   @Override
   public ArtifactManager addAppArtifact(ArtifactId artifactId, Class<?> appClass,
                                         Manifest manifest) throws Exception {
-    Location appJar = AppJarHelper.createDeploymentJar(locationFactory, appClass, manifest, CLASS_ACCEPTOR);
+    Location appJar = AppJarHelper.createDeploymentJar(locationFactory, appClass, manifest);
     addArtifact(artifactId, appJar);
     return artifactManagerFactory.create(artifactId);
   }

@@ -26,7 +26,6 @@ import co.cask.cdap.api.plugin.PluginClass;
 import co.cask.cdap.app.DefaultApplicationContext;
 import co.cask.cdap.app.MockAppConfigurer;
 import co.cask.cdap.app.program.ManifestFields;
-import co.cask.cdap.app.runtime.spark.SparkRuntimeUtils;
 import co.cask.cdap.client.ApplicationClient;
 import co.cask.cdap.client.ArtifactClient;
 import co.cask.cdap.client.DatasetClient;
@@ -38,7 +37,6 @@ import co.cask.cdap.client.config.ConnectionConfig;
 import co.cask.cdap.client.util.RESTClient;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.io.Locations;
-import co.cask.cdap.common.lang.ProgramResources;
 import co.cask.cdap.explore.jdbc.ExploreDriver;
 import co.cask.cdap.internal.app.runtime.artifact.Artifacts;
 import co.cask.cdap.internal.test.AppJarHelper;
@@ -63,7 +61,6 @@ import com.google.common.io.InputSupplier;
 import com.google.common.io.Resources;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
-import org.apache.twill.api.ClassAcceptor;
 import org.apache.twill.filesystem.LocalLocationFactory;
 import org.apache.twill.filesystem.Location;
 import org.apache.twill.filesystem.LocationFactory;
@@ -91,23 +88,6 @@ public class IntegrationTestManager implements TestManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestManager.class);
   private static final Gson GSON = new Gson();
-  private static final ClassAcceptor CLASS_ACCEPTOR = new ClassAcceptor() {
-    final Set<String> visibleResources = ProgramResources.getVisibleResources();
-
-    @Override
-    public boolean accept(String className, URL classUrl, URL classPathUrl) {
-      String resourceName = className.replace('.', '/') + ".class";
-      if (visibleResources.contains(resourceName)) {
-        return false;
-      }
-      // Always includes Scala class. It is for CDAP-5168
-      if (resourceName.startsWith("scala/")) {
-        return true;
-      }
-      // If it is loading by spark framework, don't include it in the app JAR
-      return !SparkRuntimeUtils.SPARK_PROGRAM_CLASS_LOADER_FILTER.acceptResource(resourceName);
-    }
-  };
 
   private final ApplicationClient applicationClient;
   private final ArtifactClient artifactClient;
@@ -171,8 +151,7 @@ public class IntegrationTestManager implements TestManager {
         if ("jar".equals(appClassURL.getProtocol())) {
           copyJarFile(appClassURL, appJarFile);
         } else {
-          Location appJar = AppJarHelper.createDeploymentJar(locationFactory, applicationClz, new Manifest(),
-                                                             CLASS_ACCEPTOR, bundleEmbeddedJars);
+          Location appJar = AppJarHelper.createDeploymentJar(locationFactory, applicationClz, bundleEmbeddedJars);
           Files.copy(Locations.newInputSupplier(appJar), appJarFile);
         }
         applicationClient.deploy(namespace, appJarFile, appConfig);
@@ -254,7 +233,7 @@ public class IntegrationTestManager implements TestManager {
   @Override
   public ArtifactManager addAppArtifact(ArtifactId artifactId, Class<?> appClass,
                                         Manifest manifest) throws Exception {
-    final Location appJar = AppJarHelper.createDeploymentJar(locationFactory, appClass, manifest, CLASS_ACCEPTOR);
+    final Location appJar = AppJarHelper.createDeploymentJar(locationFactory, appClass, manifest);
 
     artifactClient.add(artifactId.toId(), null, new InputSupplier<InputStream>() {
       @Override
@@ -378,7 +357,7 @@ public class IntegrationTestManager implements TestManager {
   private File createModuleJarFile(Class<?> cls) throws IOException {
     String version = String.format("1.0.%d-SNAPSHOT", System.currentTimeMillis());
     File moduleJarFile = new File(tmpFolder, String.format("%s-%s.jar", cls.getSimpleName(), version));
-    Location deploymentJar = AppJarHelper.createDeploymentJar(locationFactory, cls, new Manifest(), CLASS_ACCEPTOR);
+    Location deploymentJar = AppJarHelper.createDeploymentJar(locationFactory, cls);
     Files.copy(Locations.newInputSupplier(deploymentJar), moduleJarFile);
     return moduleJarFile;
   }

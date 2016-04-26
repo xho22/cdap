@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * A Fake spark program to test CLI integration with Spark
  */
-public class FakeSpark extends AbstractSpark implements JavaSparkMain {
+public class FakeSpark extends AbstractSpark {
 
   public static final String NAME = "FakeSparkProgram";
   private static final Logger LOG = LoggerFactory.getLogger(FakeSpark.class);
@@ -38,15 +38,21 @@ public class FakeSpark extends AbstractSpark implements JavaSparkMain {
   public void configure() {
     setName(NAME);
     setDescription("");
-    setMainClass(FakeSpark.class);
+    setMainClass(FakeSparkProgram.class);
   }
 
-  @Override
-  public void run(JavaSparkExecutionContext sec) throws Exception {
-    JavaSparkContext jsc = new JavaSparkContext();
+  /**
+   *
+   */
+  public static class FakeSparkProgram implements JavaSparkMain {
 
-    LOG.info("HelloFakeSpark");
-    List<Integer> data = Arrays.asList(1, 2, 3, 4, 5);
-    LOG.info("Collected: {}", jsc.parallelize(data).collect());
+    @Override
+    public void run(JavaSparkExecutionContext sec) throws Exception {
+      JavaSparkContext jsc = new JavaSparkContext();
+
+      LOG.info("HelloFakeSpark");
+      List<Integer> data = Arrays.asList(1, 2, 3, 4, 5);
+      LOG.info("Collected: {}", jsc.parallelize(data).collect());
+    }
   }
 }

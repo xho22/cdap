@@ -44,6 +44,8 @@ import co.cask.cdap.api.service.http.AbstractHttpServiceHandler;
 import co.cask.cdap.api.service.http.HttpServiceRequest;
 import co.cask.cdap.api.service.http.HttpServiceResponder;
 import co.cask.cdap.api.spark.AbstractSpark;
+import co.cask.cdap.api.spark.JavaSparkExecutionContext;
+import co.cask.cdap.api.spark.JavaSparkMain;
 import co.cask.cdap.api.worker.AbstractWorker;
 import co.cask.cdap.api.workflow.AbstractWorkflow;
 import co.cask.cdap.api.workflow.AbstractWorkflowAction;
@@ -55,6 +57,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -245,6 +249,29 @@ public class AllProgramsApp extends AbstractApplication {
     protected void configure() {
       setName(NAME);
       setMainClass(NoOpSparkProgram.class);
+    }
+  }
+
+  /**
+   *
+   */
+  public static class NoOpSparkProgram implements JavaSparkMain {
+
+    @Override
+    public void run(JavaSparkExecutionContext sec) throws Exception {
+      JavaSparkContext jsc = new JavaSparkContext();
+      JavaPairRDD<Long, String> streamRDD = sec.fromStream(STREAM_NAME, String.class);
+      LOG.info("Stream events: {}", streamRDD.count());
+
+      JavaPairRDD<byte[], byte[]> datasetRDD = sec.fromDataset(DATASET_NAME);
+      LOG.info("Dataset pairs: {}", datasetRDD.count());
+
+      sec.saveAsDataset(datasetRDD, DATASET_NAME2);
+
+      datasetRDD = sec.fromDataset(DATASET_NAME3);
+      LOG.info("Dataset pairs: {}", datasetRDD.count());
+
+      sec.saveAsDataset(datasetRDD, DATASET_NAME3);
     }
   }
 
