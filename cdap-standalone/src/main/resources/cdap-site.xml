@@ -144,11 +144,6 @@
     </description>
   </property>
 
-  <property>
-    <name>standalone.disable.ui</name>
-    <value>false</value>
-  </property>
-
   <!-- Zookeeper Configuration (only used when Zookeeper server is started in Standalone) -->
 
   <property>
@@ -165,6 +160,15 @@
     <description>
       ZooKeeper quorum string; specifies the ZooKeeper host:port; substitute the quorum
       (FQDN1:2181,FQDN2:2181,...) for the components shown here
+    </description>
+  </property>
+
+  <property>
+    <name>preview.enabled</name>
+    <value>true</value>
+    <description>
+      Determines whether to enable preview in standalone
+      changes based on code review and changes to support recent guice additions/changes
     </description>
   </property>
 

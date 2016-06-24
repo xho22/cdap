@@ -21,6 +21,7 @@ import co.cask.cdap.app.guice.AppFabricServiceRuntimeModule;
 import co.cask.cdap.app.guice.AuthorizationModule;
 import co.cask.cdap.app.guice.ProgramRunnerRuntimeModule;
 import co.cask.cdap.app.guice.ServiceStoreModules;
+import co.cask.cdap.app.preview.PreviewServer;
 import co.cask.cdap.app.store.ServiceStore;
 import co.cask.cdap.common.ServiceBindException;
 import co.cask.cdap.common.app.MainClassLoader;
@@ -78,6 +79,9 @@ import co.cask.cdap.security.authorization.AuthorizerInstantiator;
 import co.cask.cdap.security.guice.SecureStoreModules;
 import co.cask.cdap.security.guice.SecurityModules;
 import co.cask.cdap.security.server.ExternalAuthenticationServer;
+import co.cask.cdap.security.spi.authorization.AuthorizationEnforcer;
+import co.cask.cdap.security.spi.authorization.PrivilegesFetcher;
+import co.cask.cdap.security.spi.authorization.PrivilegesManager;
 import co.cask.cdap.store.guice.NamespaceStoreModule;
 import co.cask.tephra.TransactionManager;
 import co.cask.tephra.inmemory.InMemoryTransactionService;
@@ -140,11 +144,11 @@ public class StandaloneMain {
   private final ExternalJavaProcessExecutor kafkaProcessExecutor;
   private final ExternalJavaProcessExecutor zookeeperProcessExecutor;
   private final TrackerAppCreationService trackerAppCreationService;
+  private final PreviewServer previewServer;
   private final AuthorizerInstantiator authorizerInstantiator;
   private final RemoteSystemOperationsService remoteSystemOperationsService;
   private final AuthorizationEnforcementService authorizationEnforcementService;
   private final AuthorizationBootstrapper authorizationBootstrapper;
-  private final PreviewMain previewMain;
 
   private ExternalAuthenticationServer externalAuthenticationServer;
   private ExploreExecutorService exploreExecutorService;
@@ -213,6 +217,25 @@ public class StandaloneMain {
     metadataService = injector.getInstance(MetadataService.class);
     remoteSystemOperationsService = injector.getInstance(RemoteSystemOperationsService.class);
 
+    if (cConf.getBoolean(Constants.Preview.ENABLED)) {
+      previewServer = new PreviewServer(injector.getInstance(CConfiguration.class),
+                                        injector.getInstance(Configuration.class),
+                                        injector.getInstance(InMemoryDiscoveryService.class),
+                                        injector.getInstance(TransactionManager.class),
+                                        injector.getInstance(DatasetFramework.class),
+                                        injector.getInstance(ArtifactRepository.class),
+                                        injector.getInstance(ArtifactStore.class),
+                                        injector.getInstance(AuthorizerInstantiator.class),
+                                        injector.getInstance(StreamAdmin.class),
+                                        injector.getInstance(StreamConsumerFactory.class),
+                                        injector.getInstance(StreamCoordinatorClient.class),
+                                        injector.getInstance(PrivilegesManager.class),
+                                        injector.getInstance(AuthorizationEnforcer.class),
+                                        txService);
+    } else {
+      previewServer = null;
+    }
+
     Runtime.getRuntime().addShutdownHook(new Thread() {
       @Override
       public void run() {
@@ -226,20 +249,6 @@ public class StandaloneMain {
         }
       }
     });
-
-
-    previewMain = PreviewMain.createPreviewMain(
-      injector.getInstance(DatasetFramework.class),
-      injector.getInstance(InMemoryDiscoveryService.class),
-      injector.getInstance(ArtifactRepository.class),
-      injector.getInstance(ArtifactStore.class),
-      authorizerInstantiator,
-      injector.getInstance(StreamAdmin.class),
-      injector.getInstance(StreamCoordinatorClient.class),
-      injector.getInstance(StreamConsumerFactory.class),
-      txService,
-      injector.getInstance(TransactionManager.class)
-    );
   }
 
   /**
@@ -316,7 +325,14 @@ public class StandaloneMain {
     if (trackerAppCreationService != null) {
       trackerAppCreationService.startAndWait();
     }
-    previewMain.startUp();
+
+    if (previewServer != null) {
+      state = previewServer.startAndWait();
+      if (state != Service.State.RUNNING) {
+        throw new Exception("Failed to start Preview");
+      }
+      System.out.println("CDAP Preview started successfully");
+    }
 
     remoteSystemOperationsService.startAndWait();
 
@@ -335,7 +351,9 @@ public class StandaloneMain {
     LOG.info("Shutting down Standalone CDAP");
     boolean halt = false;
     try {
-      previewMain.shutDown();
+      if (previewServer != null) {
+        previewServer.stopAndWait();
+      }
 
       // order matters: first shut down UI 'cause it will stop working after router is down
       if (userInterfaceService != null) {
@@ -416,7 +434,6 @@ public class StandaloneMain {
   private void cleanupTempDir() {
     File tmpDir = new File(cConf.get(Constants.CFG_LOCAL_DATA_DIR),
                            cConf.get(Constants.AppFabric.TEMP_DIR)).getAbsoluteFile();
-
     if (!tmpDir.isDirectory()) {
       return;
     }
