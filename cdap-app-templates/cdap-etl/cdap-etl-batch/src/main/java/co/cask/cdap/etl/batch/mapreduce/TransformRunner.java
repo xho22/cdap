@@ -107,6 +107,7 @@ public class TransformRunner<KEY, VALUE> {
       }
     }
 
+    LOG.info("XXXXXXX {}", context.isPreviewEnabled());
     TransformExecutorFactory<KeyValue<KEY, VALUE>> transformExecutorFactory =
       new MapReduceTransformExecutorFactory<>(context, pluginInstantiator, metrics, runtimeArgs, sourceStage);
     this.transformExecutor = transformExecutorFactory.create(phase);

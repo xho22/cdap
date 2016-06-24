@@ -16,6 +16,8 @@
 
 package co.cask.cdap.etl.spark.function;
 
+import co.cask.cdap.api.Debugger;
+import co.cask.cdap.api.preview.PreviewLogger;
 import co.cask.cdap.etl.api.Transform;
 import co.cask.cdap.etl.common.DefaultEmitter;
 import co.cask.cdap.etl.common.TrackedTransform;
@@ -39,7 +41,18 @@ public class TransformFunction implements FlatMapFunction<Object, Object> {
     if (transform == null) {
       Transform<Object, Object> batchSource = pluginFunctionContext.createPlugin();
       batchSource.initialize(pluginFunctionContext.createBatchRuntimeContext());
-      transform = new TrackedTransform<>(batchSource, pluginFunctionContext.createStageMetrics());
+      // TODO Think about what needs to be done here
+      transform = new TrackedTransform<>(batchSource, pluginFunctionContext.createStageMetrics(), null, new Debugger() {
+        @Override
+        public boolean isPreviewEnabled() {
+          return false;
+        }
+
+        @Override
+        public PreviewLogger getPreviewLogger(String loggerName) {
+          return null;
+        }
+      });
       emitter = new DefaultEmitter<>();
     }
     emitter.reset();
