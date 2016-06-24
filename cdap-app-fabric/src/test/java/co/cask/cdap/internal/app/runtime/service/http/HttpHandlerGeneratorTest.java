@@ -28,6 +28,7 @@ import co.cask.cdap.api.metrics.MetricsContext;
 import co.cask.cdap.api.plugin.PluginProperties;
 import co.cask.cdap.api.security.store.SecureStoreData;
 import co.cask.cdap.api.security.store.SecureStoreMetadata;
+import co.cask.cdap.api.preview.PreviewLogger;
 import co.cask.cdap.api.service.http.AbstractHttpServiceHandler;
 import co.cask.cdap.api.service.http.HttpContentConsumer;
 import co.cask.cdap.api.service.http.HttpContentProducer;
@@ -726,6 +727,16 @@ public class HttpHandlerGeneratorTest {
 
     @Override
     public SecureStoreData getSecureData(String namespace, String name) throws Exception {
+      return null;
+    }
+
+    @Override
+    public boolean isPreviewEnabled() {
+      return false;
+    }
+
+    @Override
+    public PreviewLogger getPreviewLogger(String loggerName) {
       return null;
     }
   }

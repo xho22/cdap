@@ -35,6 +35,7 @@ import co.cask.cdap.api.security.store.SecureStoreData;
 import co.cask.cdap.api.security.store.SecureStoreManager;
 import co.cask.cdap.api.security.store.SecureStoreMetadata;
 import co.cask.cdap.app.metrics.ProgramUserMetrics;
+import co.cask.cdap.api.preview.PreviewLogger;
 import co.cask.cdap.app.program.Program;
 import co.cask.cdap.app.runtime.ProgramOptions;
 import co.cask.cdap.app.services.AbstractServiceDiscoverer;
@@ -236,6 +237,16 @@ public abstract class AbstractContext extends AbstractServiceDiscoverer
   protected <T extends Dataset> T getDataset(String name, Map<String, String> arguments, AccessType accessType)
     throws DatasetInstantiationException {
     return datasetCache.getDataset(name, arguments, accessType);
+  }
+
+  @Override
+  public boolean isPreviewEnabled() {
+    return false;
+  }
+
+  @Override
+  public PreviewLogger getPreviewLogger(String loggerName) {
+    return null;
   }
 
   @Override

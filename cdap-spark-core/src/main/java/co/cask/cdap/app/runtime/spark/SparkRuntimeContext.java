@@ -18,6 +18,7 @@ package co.cask.cdap.app.runtime.spark;
 
 import co.cask.cdap.api.metrics.Metrics;
 import co.cask.cdap.api.metrics.MetricsCollectionService;
+import co.cask.cdap.api.preview.PreviewLogger;
 import co.cask.cdap.api.security.store.SecureStore;
 import co.cask.cdap.api.security.store.SecureStoreManager;
 import co.cask.cdap.api.spark.SparkSpecification;
@@ -198,5 +199,15 @@ public final class SparkRuntimeContext extends AbstractContext implements Metric
       workflowProgramInfo.updateMetricsTags(tags);
     }
     return tags;
+  }
+
+  @Override
+  public boolean isPreviewEnabled() {
+    return false;
+  }
+
+  @Override
+  public PreviewLogger getPreviewLogger(String loggerName) {
+    return null;
   }
 }

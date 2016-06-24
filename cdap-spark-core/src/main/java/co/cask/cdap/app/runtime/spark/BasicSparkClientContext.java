@@ -26,6 +26,7 @@ import co.cask.cdap.api.metrics.Metrics;
 import co.cask.cdap.api.plugin.PluginProperties;
 import co.cask.cdap.api.security.store.SecureStoreData;
 import co.cask.cdap.api.security.store.SecureStoreMetadata;
+import co.cask.cdap.api.preview.PreviewLogger;
 import co.cask.cdap.api.spark.Spark;
 import co.cask.cdap.api.spark.SparkClientContext;
 import co.cask.cdap.api.spark.SparkSpecification;
@@ -255,5 +256,15 @@ final class BasicSparkClientContext implements SparkClientContext {
   @Override
   public SecureStoreData getSecureData(String namespace, String name) throws Exception {
     return sparkRuntimeContext.getSecureData(namespace, name);
+  }
+
+  @Override
+  public boolean isPreviewEnabled() {
+    return false;
+  }
+
+  @Override
+  public PreviewLogger getPreviewLogger(String loggerName) {
+    return null;
   }
 }
