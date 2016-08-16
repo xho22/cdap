@@ -95,25 +95,26 @@ public class PreviewServer extends AbstractIdleService {
 
   private static final Logger LOG = LoggerFactory.getLogger(PreviewServer.class);
 
-  private final CConfiguration cConf;
-  private final DiscoveryService discoveryService;
-  private final ProgramRuntimeService programRuntimeService;
-  private final ApplicationLifecycleService applicationLifecycleService;
-  private final ProgramLifecycleService programLifecycleService;
-  private final SystemArtifactLoader systemArtifactLoader;
-
-  private final MetricsCollectionService metricsCollectionService;
-  private final LogAppenderInitializer logAppenderInitializer;
-  private final DatasetService datasetService;
-
-  private final NettyHttpService httpService;
+  private CConfiguration cConf;
+  private DiscoveryService discoveryService;
+  private ProgramRuntimeService programRuntimeService;
+  private ApplicationLifecycleService applicationLifecycleService;
+  private ProgramLifecycleService programLifecycleService;
+  private SystemArtifactLoader systemArtifactLoader;
+  private MetricsCollectionService metricsCollectionService;
+  private LogAppenderInitializer logAppenderInitializer;
+  private DatasetService datasetService;
+  private NettyHttpService httpService;
   private Cancellable cancellable;
+
+  public PreviewServer() {
+
+  }
 
   /**
    * Creates Preview Injector based on shared bindings passed from Standalone injector and
    * constructs the PreviewServer with configuration coming from guice injection.
    */
-  @Inject
   public PreviewServer(CConfiguration cConf, Configuration hConf,
                        InMemoryDiscoveryService discoveryService, TransactionManager transactionManager,
                        DatasetFramework datasetFramework, final ArtifactRepository artifactRepository,
