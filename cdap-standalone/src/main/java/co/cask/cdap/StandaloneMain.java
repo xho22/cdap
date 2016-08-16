@@ -41,15 +41,11 @@ import co.cask.cdap.data.runtime.DataFabricModules;
 import co.cask.cdap.data.runtime.DataSetServiceModules;
 import co.cask.cdap.data.runtime.DataSetsModules;
 import co.cask.cdap.data.stream.StreamAdminModules;
-import co.cask.cdap.data.stream.StreamCoordinatorClient;
 import co.cask.cdap.data.stream.service.StreamService;
 import co.cask.cdap.data.stream.service.StreamServiceRuntimeModule;
 import co.cask.cdap.data.view.ViewAdminModules;
 import co.cask.cdap.data2.audit.AuditModule;
 import co.cask.cdap.data2.datafabric.dataset.service.DatasetService;
-import co.cask.cdap.data2.dataset2.DatasetFramework;
-import co.cask.cdap.data2.transaction.stream.StreamAdmin;
-import co.cask.cdap.data2.transaction.stream.StreamConsumerFactory;
 import co.cask.cdap.explore.client.ExploreClient;
 import co.cask.cdap.explore.executor.ExploreExecutorService;
 import co.cask.cdap.explore.guice.ExploreClientModule;
@@ -59,8 +55,6 @@ import co.cask.cdap.gateway.handlers.meta.RemoteSystemOperationsService;
 import co.cask.cdap.gateway.handlers.meta.RemoteSystemOperationsServiceModule;
 import co.cask.cdap.gateway.router.NettyRouter;
 import co.cask.cdap.gateway.router.RouterModules;
-import co.cask.cdap.internal.app.runtime.artifact.ArtifactRepository;
-import co.cask.cdap.internal.app.runtime.artifact.ArtifactStore;
 import co.cask.cdap.internal.app.services.AppFabricServer;
 import co.cask.cdap.logging.appender.LogAppenderInitializer;
 import co.cask.cdap.logging.guice.LogReaderRuntimeModules;
@@ -79,11 +73,7 @@ import co.cask.cdap.security.authorization.AuthorizerInstantiator;
 import co.cask.cdap.security.guice.SecureStoreModules;
 import co.cask.cdap.security.guice.SecurityModules;
 import co.cask.cdap.security.server.ExternalAuthenticationServer;
-import co.cask.cdap.security.spi.authorization.AuthorizationEnforcer;
-import co.cask.cdap.security.spi.authorization.PrivilegesFetcher;
-import co.cask.cdap.security.spi.authorization.PrivilegesManager;
 import co.cask.cdap.store.guice.NamespaceStoreModule;
-import co.cask.tephra.TransactionManager;
 import co.cask.tephra.inmemory.InMemoryTransactionService;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
@@ -97,7 +87,6 @@ import com.google.inject.Injector;
 import com.google.inject.Module;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.counters.Limits;
-import org.apache.twill.discovery.InMemoryDiscoveryService;
 import org.apache.twill.kafka.client.KafkaClientService;
 import org.apache.twill.zookeeper.ZKClientService;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
@@ -218,19 +207,7 @@ public class StandaloneMain {
     remoteSystemOperationsService = injector.getInstance(RemoteSystemOperationsService.class);
 
     if (cConf.getBoolean(Constants.Preview.ENABLED)) {
-      previewServer = new PreviewServer(injector.getInstance(CConfiguration.class),
-                                        injector.getInstance(Configuration.class),
-                                        injector.getInstance(InMemoryDiscoveryService.class),
-                                        injector.getInstance(TransactionManager.class),
-                                        injector.getInstance(DatasetFramework.class),
-                                        injector.getInstance(ArtifactRepository.class),
-                                        injector.getInstance(ArtifactStore.class),
-                                        injector.getInstance(AuthorizerInstantiator.class),
-                                        injector.getInstance(StreamAdmin.class),
-                                        injector.getInstance(StreamConsumerFactory.class),
-                                        injector.getInstance(StreamCoordinatorClient.class),
-                                        injector.getInstance(PrivilegesManager.class),
-                                        injector.getInstance(AuthorizationEnforcer.class));
+      previewServer = injector.getInstance(PreviewServer.class);
     } else {
       previewServer = null;
     }
