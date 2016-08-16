@@ -225,8 +225,6 @@ public class PreviewServer extends AbstractIdleService {
    */
   @Override
   protected void startUp() throws Exception {
-    ConfigurationLogger.logImportantConfig(cConf);
-
     metricsCollectionService.startAndWait();
     datasetService.startAndWait();
 
@@ -263,16 +261,19 @@ public class PreviewServer extends AbstractIdleService {
 
   @Override
   protected void shutDown() throws Exception {
-    cancellable.cancel();
-    httpService.stopAndWait();
-    programRuntimeService.stopAndWait();
-    applicationLifecycleService.stopAndWait();
-    systemArtifactLoader.stopAndWait();
-    programLifecycleService.stopAndWait();
-    logAppenderInitializer.close();
-    datasetService.stopAndWait();
-    metricsCollectionService.stopAndWait();
-    cleanupTempDir();
+    try {
+      cancellable.cancel();
+      httpService.stopAndWait();
+      programRuntimeService.stopAndWait();
+      applicationLifecycleService.stopAndWait();
+      systemArtifactLoader.stopAndWait();
+      programLifecycleService.stopAndWait();
+      logAppenderInitializer.close();
+      datasetService.stopAndWait();
+      metricsCollectionService.stopAndWait();
+    } finally {
+      cleanupTempDir();
+    }
   }
 
   private void cleanupTempDir() {

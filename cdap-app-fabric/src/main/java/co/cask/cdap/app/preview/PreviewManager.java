@@ -42,6 +42,7 @@ public interface PreviewManager {
    * Get the status for the specified {@link PreviewId}.
    * @param previewId the id of the preview for which status is to be returned
    * @return the status associated with the preview
+   * @throws NotFoundException if the previewId is not found
    */
   PreviewStatus getStatus(PreviewId previewId) throws NotFoundException;
 
@@ -49,28 +50,32 @@ public interface PreviewManager {
    * Get the data associated with the preview.
    * @param previewId the id associated with the preview
    * @return the {@link Map} of logger name to properties associated with the logger for a given preview
+   * @throws NotFoundException if the previewId is not found
    */
-  Map<String, Map<String, List<Object>>> getData(PreviewId previewId);
+  Map<String, Map<String, List<Object>>> getData(PreviewId previewId) throws NotFoundException;
 
   /**
    * Get the data associated with the specified logger name of the preview.
    * @param previewId id of the preview
    * @param loggerName the name of the logger for which data is to be returned
    * @return the {@link Map} of property name to property value associated with the given logger for a given preview
+   * @throws NotFoundException if the previewId is not found
    */
-  Map<String, List<Object>> getData(PreviewId previewId, String loggerName);
+  Map<String, List<Object>> getData(PreviewId previewId, String loggerName) throws NotFoundException;
 
   /**
    * Get metric associated with the preview.
    * @param previewId the id of the preview
    * @return the {@link Collection} of metrics emitted during the preview run
+   * @throws NotFoundException if the previewId is not found
    */
-  Collection<MetricTimeSeries> getMetrics(PreviewId previewId);
+  Collection<MetricTimeSeries> getMetrics(PreviewId previewId) throws NotFoundException;
 
   /**
    * Get the logs for the preview.
    * @param previewId the id of the preview for which logs to be fetched
    * @return the logs
+   * @throws NotFoundException if the previewId is not found
    */
-  List<LogEntry> getLogs(PreviewId previewId);
+  List<LogEntry> getLogs(PreviewId previewId) throws NotFoundException;
 }
