@@ -72,7 +72,7 @@ public class DefaultPreviewManager implements PreviewManager {
     AppRequest<?> appRequest = GSON.fromJson(config, AppRequest.class);
     ArtifactSummary artifactSummary = appRequest.getArtifact();
     NamespaceId artifactNamespace =
-       ArtifactScope.SYSTEM.equals(artifactSummary.getScope()) ? NamespaceId.SYSTEM : namespaceId;
+      ArtifactScope.SYSTEM.equals(artifactSummary.getScope()) ? NamespaceId.SYSTEM : namespaceId;
     ArtifactId artifactId =
       new ArtifactId(artifactNamespace.getNamespace(), artifactSummary.getName(), artifactSummary.getVersion());
 
@@ -129,22 +129,32 @@ public class DefaultPreviewManager implements PreviewManager {
   }
 
   @Override
-  public Map<String, Map<String, List<Object>>> getData(PreviewId previewId) {
+  public void stop(PreviewId previewId) throws Exception {
+    if (!previewStatusMap.containsKey(previewId)) {
+      throw new NotFoundException(previewId + " not found");
+    }
+    ProgramId programId = new ProgramId(previewId.getNamespace(), previewId.getPreview(), ProgramType.WORKFLOW,
+                                        "DataPipelineWorkflow");
+    programLifecycleService.stop(programId);
+  }
+
+  @Override
+  public Map<String, Map<String, List<Object>>> getData(PreviewId previewId) throws NotFoundException {
     return new HashMap<>();
   }
 
   @Override
-  public Map<String, List<Object>> getData(PreviewId previewId, String stageName) {
+  public Map<String, List<Object>> getData(PreviewId previewId, String stageName) throws NotFoundException {
     return new HashMap<>();
   }
 
   @Override
-  public Collection<MetricTimeSeries> getMetrics(PreviewId previewId) {
+  public Collection<MetricTimeSeries> getMetrics(PreviewId previewId) throws NotFoundException {
     return new ArrayList<>();
   }
 
   @Override
-  public List<LogEntry> getLogs(PreviewId previewId) {
+  public List<LogEntry> getLogs(PreviewId previewId) throws NotFoundException {
     return new ArrayList<>();
   }
 }

@@ -35,6 +35,7 @@ public interface PreviewManager {
    * @param namespaceId the id of 
    * @param config the config for the preview
    * @return the unique {@link PreviewId} generated for the preview run
+   * @throws Exception if there were any error during starting
    */
   PreviewId start(NamespaceId namespaceId, String config) throws Exception;
 
@@ -45,6 +46,13 @@ public interface PreviewManager {
    * @throws NotFoundException if the previewId is not found
    */
   PreviewStatus getStatus(PreviewId previewId) throws NotFoundException;
+
+  /**
+   * Stop the preview identified by previewId.
+   * @param previewId id of the preview
+   * @throws Exception if the previewId is not found or if there were any error during stop
+   */
+  void stop(PreviewId previewId) throws Exception;
 
   /**
    * Get the data associated with the preview.
