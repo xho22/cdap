@@ -27,9 +27,9 @@ import org.apache.twill.discovery.InMemoryDiscoveryService;
  * Provides Guice bindings for DiscoveryService and DiscoveryServiceClient for preview mode.
  */
 public class PreviewDiscoveryRuntimeModule extends AbstractModule {
-  private InMemoryDiscoveryService discoveryService;
+  private DiscoveryService discoveryService;
 
-  public PreviewDiscoveryRuntimeModule(InMemoryDiscoveryService discoveryService) {
+  public PreviewDiscoveryRuntimeModule(DiscoveryService discoveryService) {
     this.discoveryService = discoveryService;
   }
 

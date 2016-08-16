@@ -30,7 +30,6 @@ import co.cask.cdap.common.http.CommonNettyHttpServiceBuilder;
 import co.cask.cdap.common.logging.LoggingContextAccessor;
 import co.cask.cdap.common.logging.ServiceLoggingContext;
 import co.cask.cdap.common.metrics.MetricsReporterHook;
-import co.cask.cdap.common.startup.ConfigurationLogger;
 import co.cask.cdap.common.utils.DirUtils;
 import co.cask.cdap.config.guice.ConfigStoreModule;
 import co.cask.cdap.data.runtime.DataSetServiceModules;
@@ -63,13 +62,11 @@ import co.cask.http.HandlerHook;
 import co.cask.http.HttpHandler;
 import co.cask.http.NettyHttpService;
 import co.cask.tephra.TransactionManager;
-import co.cask.tephra.inmemory.InMemoryTransactionService;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.Futures;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
-import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
@@ -116,18 +113,17 @@ public class PreviewServer extends AbstractIdleService {
    * constructs the PreviewServer with configuration coming from guice injection.
    */
   public PreviewServer(CConfiguration cConf, Configuration hConf,
-                       InMemoryDiscoveryService discoveryService, TransactionManager transactionManager,
+                       DiscoveryService discoveryService, TransactionManager transactionManager,
                        DatasetFramework datasetFramework, final ArtifactRepository artifactRepository,
                        final ArtifactStore artifactStore, final AuthorizerInstantiator authorizerInstantiator,
                        final StreamAdmin streamAdmin, final StreamConsumerFactory streamConsumerFactory,
                        final StreamCoordinatorClient streamCoordinatorClient,
                        final PrivilegesManager privilegesManager,
-                       final AuthorizationEnforcer authorizationEnforcer,
-                       final InMemoryTransactionService inMemoryTransactionService) {
+                       final AuthorizationEnforcer authorizationEnforcer) {
     Injector injector = createPreviewInjector(cConf, hConf, discoveryService, transactionManager,
                                               datasetFramework, artifactRepository,
                                               artifactStore, authorizerInstantiator, streamAdmin, streamConsumerFactory,
-                                              streamCoordinatorClient, inMemoryTransactionService, privilegesManager,
+                                              streamCoordinatorClient, privilegesManager,
                                               authorizationEnforcer);
     this.cConf = injector.getInstance(CConfiguration.class);
     this.discoveryService = injector.getInstance(Key.get(DiscoveryService.class,
@@ -164,7 +160,7 @@ public class PreviewServer extends AbstractIdleService {
   }
 
   private Injector createPreviewInjector(CConfiguration cConf, Configuration hConf,
-                                         InMemoryDiscoveryService discoveryService,
+                                         DiscoveryService discoveryService,
                                          TransactionManager transactionManager,
                                          DatasetFramework datasetFramework,
                                          final ArtifactRepository artifactRepository,
@@ -173,7 +169,6 @@ public class PreviewServer extends AbstractIdleService {
                                          final StreamAdmin streamAdmin,
                                          final StreamConsumerFactory streamConsumerFactory,
                                          final StreamCoordinatorClient streamCoordinatorClient,
-                                         final InMemoryTransactionService inMemoryTransactionService,
                                          final PrivilegesManager privilegesManager,
                                          final AuthorizationEnforcer authorizationEnforcer) {
     // create cConf and hConf and set appropriate settings for preview
@@ -214,7 +209,6 @@ public class PreviewServer extends AbstractIdleService {
           bind(StreamAdmin.class).toInstance(streamAdmin);
           bind(StreamConsumerFactory.class).toInstance(streamConsumerFactory);
           bind(StreamCoordinatorClient.class).toInstance(streamCoordinatorClient);
-          bind(InMemoryTransactionService.class).toInstance(inMemoryTransactionService);
           // bind explore client to mock.
           bind(ExploreClient.class).to(MockExploreClient.class);
         }

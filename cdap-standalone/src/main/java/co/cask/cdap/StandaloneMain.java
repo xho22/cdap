@@ -230,8 +230,7 @@ public class StandaloneMain {
                                         injector.getInstance(StreamConsumerFactory.class),
                                         injector.getInstance(StreamCoordinatorClient.class),
                                         injector.getInstance(PrivilegesManager.class),
-                                        injector.getInstance(AuthorizationEnforcer.class),
-                                        txService);
+                                        injector.getInstance(AuthorizationEnforcer.class));
     } else {
       previewServer = null;
     }
