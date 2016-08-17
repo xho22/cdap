@@ -146,12 +146,12 @@ public class DefaultPreviewManager implements PreviewManager {
   }
 
   @Override
-  public Map<String, Map<String, List<Object>>> getData(PreviewId previewId) throws NotFoundException {
+  public Map<String, Map<String, List<String>>> getData(PreviewId previewId) throws NotFoundException {
     return new HashMap<>();
   }
 
   @Override
-  public Map<String, List<Object>> getData(PreviewId previewId, String stageName) throws NotFoundException {
+  public Map<String, List<String>> getData(PreviewId previewId, String stageName) throws NotFoundException {
     return previewStore.get(previewId, stageName);
   }
 
