@@ -26,6 +26,7 @@ import co.cask.cdap.api.security.store.SecureStoreManager;
 import co.cask.cdap.app.metrics.ProgramUserMetrics;
 import co.cask.cdap.app.program.Program;
 import co.cask.cdap.app.runtime.ProgramOptions;
+import co.cask.cdap.app.store.PreviewStore;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.logging.LoggingContext;
 import co.cask.cdap.common.utils.ImmutablePair;
@@ -65,11 +66,11 @@ final class BasicFlowletContext extends AbstractContext implements FlowletContex
                       TransactionSystemClient txClient,
                       DatasetFramework dsFramework,
                       SecureStore secureStore,
-                      SecureStoreManager secureStoreManager) {
+                      SecureStoreManager secureStoreManager, PreviewStore previewStore) {
     super(program, programOptions, datasets, dsFramework, txClient, discoveryServiceClient, false, metricsService,
           ImmutableMap.of(Constants.Metrics.Tag.FLOWLET, flowletId,
                           Constants.Metrics.Tag.INSTANCE_ID, String.valueOf(instanceId)),
-          secureStore, secureStoreManager
+          secureStore, secureStoreManager, previewStore, null /* No PreviewId for flow */
     );
 
     this.flowId = program.getName();

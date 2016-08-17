@@ -75,11 +75,12 @@ public final class InMemoryConfigurator implements Configurator {
   private final Impersonator impersonator;
   private final String appClassName;
   private final Id.Artifact artifactId;
+  private final boolean isPreviewRun;
 
   public InMemoryConfigurator(CConfiguration cConf, Id.Namespace appNamespace, Id.Artifact artifactId,
                               String appClassName, ArtifactRepository artifactRepository,
                               ClassLoader artifactClassLoader, Impersonator impersonator,
-                              @Nullable String applicationName, @Nullable String configString) {
+                              @Nullable String applicationName, @Nullable String configString, boolean isPreviewRun) {
     this.cConf = cConf;
     this.appNamespace = appNamespace;
     this.artifactId = artifactId;
@@ -91,6 +92,7 @@ public final class InMemoryConfigurator implements Configurator {
     this.impersonator = impersonator;
     this.baseUnpackDir = new File(cConf.get(Constants.CFG_LOCAL_DATA_DIR),
                                   cConf.get(Constants.AppFabric.TEMP_DIR)).getAbsoluteFile();
+    this.isPreviewRun = isPreviewRun;
   }
 
   /**
@@ -162,7 +164,7 @@ public final class InMemoryConfigurator implements Configurator {
         impersonator.doAs(appNamespace.toEntityId(), new Callable<Void>() {
           @Override
           public Void call() throws Exception {
-            app.configure(configurer, new DefaultApplicationContext<>(appConfig));
+            app.configure(configurer, new DefaultApplicationContext<>(appConfig, isPreviewRun));
             return null;
           }
         });

@@ -24,9 +24,9 @@ import co.cask.cdap.api.dataset.Dataset;
 import co.cask.cdap.api.macro.MacroEvaluator;
 import co.cask.cdap.api.metrics.Metrics;
 import co.cask.cdap.api.plugin.PluginProperties;
+import co.cask.cdap.api.preview.PreviewLogger;
 import co.cask.cdap.api.security.store.SecureStoreData;
 import co.cask.cdap.api.security.store.SecureStoreMetadata;
-import co.cask.cdap.api.preview.PreviewLogger;
 import co.cask.cdap.api.spark.Spark;
 import co.cask.cdap.api.spark.SparkClientContext;
 import co.cask.cdap.api.spark.SparkSpecification;
@@ -260,11 +260,11 @@ final class BasicSparkClientContext implements SparkClientContext {
 
   @Override
   public boolean isPreviewEnabled() {
-    return false;
+    return sparkRuntimeContext.isPreviewEnabled();
   }
 
   @Override
   public PreviewLogger getPreviewLogger(String loggerName) {
-    return null;
+    return sparkRuntimeContext.getPreviewLogger(loggerName);
   }
 }
