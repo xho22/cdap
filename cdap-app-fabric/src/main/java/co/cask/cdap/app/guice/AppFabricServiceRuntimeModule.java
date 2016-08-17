@@ -65,7 +65,6 @@ import co.cask.cdap.internal.app.deploy.LocalApplicationManager;
 import co.cask.cdap.internal.app.deploy.pipeline.AppDeploymentInfo;
 import co.cask.cdap.internal.app.deploy.pipeline.ApplicationWithPrograms;
 import co.cask.cdap.internal.app.namespace.DefaultNamespaceAdmin;
-import co.cask.cdap.internal.app.namespace.DefaultNamespaceQueryAdmin;
 import co.cask.cdap.internal.app.namespace.DistributedStorageProviderNamespaceAdmin;
 import co.cask.cdap.internal.app.namespace.LocalStorageProviderNamespaceAdmin;
 import co.cask.cdap.internal.app.namespace.StorageProviderNamespaceAdmin;
@@ -312,8 +311,9 @@ public final class AppFabricServiceRuntimeModule extends RuntimeModule {
       bind(RuntimeStore.class).to(DefaultStore.class);
       bind(ArtifactStore.class).in(Scopes.SINGLETON);
       bind(ProgramLifecycleService.class).in(Scopes.SINGLETON);
-      bind(NamespaceAdmin.class).to(DefaultNamespaceAdmin.class).in(Scopes.SINGLETON);
-      bind(NamespaceQueryAdmin.class).to(DefaultNamespaceQueryAdmin.class).in(Scopes.SINGLETON);
+      bind(DefaultNamespaceAdmin.class).in(Scopes.SINGLETON);
+      bind(NamespaceAdmin.class).to(DefaultNamespaceAdmin.class);
+      bind(NamespaceQueryAdmin.class).to(DefaultNamespaceAdmin.class);
 
       Multibinder<HttpHandler> handlerBinder = Multibinder.newSetBinder(
         binder(), HttpHandler.class, Names.named(Constants.AppFabric.HANDLERS_BINDING));
