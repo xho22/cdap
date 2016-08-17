@@ -159,7 +159,7 @@ public class LineageAdmin {
     LOG.trace("Computing lineage for data {}, startMillis {}, endMillis {}, levels {}",
               sourceData, startMillis, endMillis, levels);
 
-    entityExistenceVerifier.ensureExists(sourceData.toEntityId());
+    // entityExistenceVerifier.ensureExists(sourceData.toEntityId());
 
     // Convert start time and end time period into scan keys in terms of program start times.
     Set<RunId> runningInRange = store.getRunningInRange(TimeUnit.MILLISECONDS.toSeconds(startMillis),
