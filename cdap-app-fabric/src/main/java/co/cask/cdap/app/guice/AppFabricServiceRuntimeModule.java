@@ -65,8 +65,10 @@ import co.cask.cdap.internal.app.deploy.LocalApplicationManager;
 import co.cask.cdap.internal.app.deploy.pipeline.AppDeploymentInfo;
 import co.cask.cdap.internal.app.deploy.pipeline.ApplicationWithPrograms;
 import co.cask.cdap.internal.app.namespace.DefaultNamespaceAdmin;
+import co.cask.cdap.internal.app.namespace.DefaultNamespaceResourceDeleter;
 import co.cask.cdap.internal.app.namespace.DistributedStorageProviderNamespaceAdmin;
 import co.cask.cdap.internal.app.namespace.LocalStorageProviderNamespaceAdmin;
+import co.cask.cdap.internal.app.namespace.NamespaceResourceDeleter;
 import co.cask.cdap.internal.app.namespace.StorageProviderNamespaceAdmin;
 import co.cask.cdap.internal.app.runtime.artifact.ArtifactStore;
 import co.cask.cdap.internal.app.runtime.batch.InMemoryTransactionServiceManager;
@@ -104,6 +106,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.AbstractModule;
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.google.inject.PrivateModule;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
@@ -311,9 +314,19 @@ public final class AppFabricServiceRuntimeModule extends RuntimeModule {
       bind(RuntimeStore.class).to(DefaultStore.class);
       bind(ArtifactStore.class).in(Scopes.SINGLETON);
       bind(ProgramLifecycleService.class).in(Scopes.SINGLETON);
-      bind(DefaultNamespaceAdmin.class).in(Scopes.SINGLETON);
-      bind(NamespaceAdmin.class).to(DefaultNamespaceAdmin.class);
-      bind(NamespaceQueryAdmin.class).to(DefaultNamespaceAdmin.class);
+
+      install(new PrivateModule() {
+        @Override
+        protected void configure() {
+          bind(NamespaceResourceDeleter.class).to(DefaultNamespaceResourceDeleter.class).in(Scopes.SINGLETON);
+          bind(DefaultNamespaceAdmin.class).in(Scopes.SINGLETON);
+          bind(NamespaceAdmin.class).to(DefaultNamespaceAdmin.class);
+          bind(NamespaceQueryAdmin.class).to(DefaultNamespaceAdmin.class);
+
+          expose(NamespaceAdmin.class);
+          expose(NamespaceQueryAdmin.class);
+        }
+      });
 
       Multibinder<HttpHandler> handlerBinder = Multibinder.newSetBinder(
         binder(), HttpHandler.class, Names.named(Constants.AppFabric.HANDLERS_BINDING));

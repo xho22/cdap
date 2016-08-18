@@ -17,10 +17,7 @@
 package co.cask.cdap.internal.app.namespace;
 
 import co.cask.cdap.api.dataset.DatasetManagementException;
-import co.cask.cdap.api.metrics.MetricDeleteQuery;
-import co.cask.cdap.api.metrics.MetricStore;
 import co.cask.cdap.app.runtime.ProgramRuntimeService;
-import co.cask.cdap.app.store.Store;
 import co.cask.cdap.common.BadRequestException;
 import co.cask.cdap.common.NamespaceAlreadyExistsException;
 import co.cask.cdap.common.NamespaceCannotBeCreatedException;
@@ -32,15 +29,8 @@ import co.cask.cdap.common.kerberos.SecurityUtil;
 import co.cask.cdap.common.namespace.NamespaceAdmin;
 import co.cask.cdap.common.security.ImpersonationInfo;
 import co.cask.cdap.common.security.Impersonator;
-import co.cask.cdap.config.DashboardStore;
-import co.cask.cdap.config.PreferencesStore;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
-import co.cask.cdap.data2.transaction.queue.QueueAdmin;
-import co.cask.cdap.data2.transaction.stream.StreamAdmin;
 import co.cask.cdap.explore.service.ExploreException;
-import co.cask.cdap.internal.app.runtime.artifact.ArtifactRepository;
-import co.cask.cdap.internal.app.runtime.schedule.Scheduler;
-import co.cask.cdap.internal.app.services.ApplicationLifecycleService;
 import co.cask.cdap.proto.Id;
 import co.cask.cdap.proto.NamespaceConfig;
 import co.cask.cdap.proto.NamespaceMeta;
@@ -64,8 +54,8 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.inject.Inject;
+import com.google.inject.Provider;
 import org.apache.hadoop.security.authentication.util.KerberosName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,50 +80,37 @@ public final class DefaultNamespaceAdmin implements NamespaceAdmin {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultNamespaceAdmin.class);
   private static final Pattern NAMESPACE_PATTERN = Pattern.compile("[a-zA-Z0-9_]+");
 
-  private final Store store;
   private final NamespaceStore nsStore;
-  private final PreferencesStore preferencesStore;
-  private final DashboardStore dashboardStore;
   private final DatasetFramework dsFramework;
-  private final ProgramRuntimeService runtimeService;
-  private final QueueAdmin queueAdmin;
-  private final StreamAdmin streamAdmin;
-  private final MetricStore metricStore;
-  private final Scheduler scheduler;
-  private final ApplicationLifecycleService applicationLifecycleService;
-  private final ArtifactRepository artifactRepository;
+
+  // Cannot have direct dependency on the following three resources
+  // Otherwise there would be circular dependency
+  // Use Provider to abstract out
+  private final Provider<NamespaceResourceDeleter> resourceDeleter;
+  private final Provider<ProgramRuntimeService> runtimeService;
+  private final Provider<StorageProviderNamespaceAdmin> storageProviderNamespaceAdmin;
   private final PrivilegesManager privilegesManager;
   private final AuthorizationEnforcer authorizationEnforcer;
   private final AuthenticationContext authenticationContext;
   private final InstanceId instanceId;
-  private final StorageProviderNamespaceAdmin storageProviderNamespaceAdmin;
   private final Impersonator impersonator;
   private final CConfiguration cConf;
   private final LoadingCache<NamespaceId, NamespaceMeta> namespaceMetaCache;
 
   @Inject
-  DefaultNamespaceAdmin(Store store, NamespaceStore nsStore, PreferencesStore preferencesStore,
-                        DashboardStore dashboardStore, DatasetFramework dsFramework,
-                        ProgramRuntimeService runtimeService, QueueAdmin queueAdmin, StreamAdmin streamAdmin,
-                        MetricStore metricStore, Scheduler scheduler,
-                        ApplicationLifecycleService applicationLifecycleService,
-                        ArtifactRepository artifactRepository,
+  DefaultNamespaceAdmin(NamespaceStore nsStore,
+                        DatasetFramework dsFramework,
+                        Provider<NamespaceResourceDeleter> resourceDeleter,
+                        Provider<ProgramRuntimeService> runtimeService,
+                        Provider<StorageProviderNamespaceAdmin> storageProviderNamespaceAdmin,
                         PrivilegesManager privilegesManager,
-                        CConfiguration cConf, StorageProviderNamespaceAdmin storageProviderNamespaceAdmin,
+                        CConfiguration cConf,
                         Impersonator impersonator, AuthorizationEnforcer authorizationEnforcer,
                         AuthenticationContext authenticationContext) {
-    this.queueAdmin = queueAdmin;
-    this.streamAdmin = streamAdmin;
-    this.store = store;
+    this.resourceDeleter = resourceDeleter;
     this.nsStore = nsStore;
-    this.preferencesStore = preferencesStore;
-    this.dashboardStore = dashboardStore;
     this.dsFramework = dsFramework;
     this.runtimeService = runtimeService;
-    this.scheduler = scheduler;
-    this.metricStore = metricStore;
-    this.applicationLifecycleService = applicationLifecycleService;
-    this.artifactRepository = artifactRepository;
     this.privilegesManager = privilegesManager;
     this.authenticationContext = authenticationContext;
     this.authorizationEnforcer = authorizationEnforcer;
@@ -190,7 +167,7 @@ public final class DefaultNamespaceAdmin implements NamespaceAdmin {
       impersonator.doAs(metadata, new Callable<Void>() {
         @Override
         public Void call() throws Exception {
-          storageProviderNamespaceAdmin.create(metadata);
+          storageProviderNamespaceAdmin.get().create(metadata);
           return null;
         }
       });
@@ -287,43 +264,13 @@ public final class DefaultNamespaceAdmin implements NamespaceAdmin {
 
     LOG.info("Deleting namespace '{}'.", namespace);
     try {
-      // Delete Preferences associated with this namespace
-      preferencesStore.deleteProperties(namespaceId.getId());
-      // Delete all dashboards associated with this namespace
-      dashboardStore.delete(namespaceId.getId());
-      // Delete all applications
-      applicationLifecycleService.removeAll(namespaceId);
-      // Delete all the schedules
-      scheduler.deleteAllSchedules(namespaceId);
-      // Delete datasets and modules
-      dsFramework.deleteAllInstances(namespaceId);
-      dsFramework.deleteAllModules(namespaceId);
-      // Delete queues and streams data
-      queueAdmin.dropAllInNamespace(namespaceId);
-      streamAdmin.dropAllInNamespace(namespaceId);
-      // Delete all meta data
-      store.removeAll(namespaceId);
-
-      deleteMetrics(namespace);
-      // delete all artifacts in the namespace
-      artifactRepository.clear(namespaceId.toEntityId());
-
-      LOG.info("All data for namespace '{}' deleted.", namespace);
+      resourceDeleter.get().deleteResources(namespaceMeta);
 
       // Delete the namespace itself, only if it is a non-default namespace. This is because we do not allow users to
       // create default namespace, and hence deleting it may cause undeterministic behavior.
       // Another reason for not deleting the default namespace is that we do not want to call a delete on the default
       // namespace in the storage provider (Hive, HBase, etc), since we re-use their default namespace.
       if (!NamespaceId.DEFAULT.equals(namespace)) {
-        impersonator.doAs(namespaceMeta, new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            // Delete namespace in storage providers
-            storageProviderNamespaceAdmin.delete(namespace);
-            return null;
-          }
-        });
-
         // Finally delete namespace from MDS and remove from cache
         nsStore.delete(namespaceId);
         namespaceMetaCache.invalidate(namespace);
@@ -341,14 +288,6 @@ public final class DefaultNamespaceAdmin implements NamespaceAdmin {
       LOG.warn("Error while deleting namespace {}", namespaceId, e);
       throw new NamespaceCannotBeDeletedException(namespaceId, e);
     }
-  }
-
-  private void deleteMetrics(NamespaceId namespaceId) throws Exception {
-    long endTs = System.currentTimeMillis() / 1000;
-    Map<String, String> tags = Maps.newHashMap();
-    tags.put(Constants.Metrics.Tag.NAMESPACE, namespaceId.getNamespace());
-    MetricDeleteQuery deleteQuery = new MetricDeleteQuery(0, endTs, tags);
-    metricStore.delete(deleteQuery);
   }
 
   @Override
@@ -488,7 +427,7 @@ public final class DefaultNamespaceAdmin implements NamespaceAdmin {
 
   private boolean checkProgramsRunning(final NamespaceId namespaceId) {
     Iterable<ProgramRuntimeService.RuntimeInfo> runtimeInfos =
-      Iterables.filter(runtimeService.listAll(ProgramType.values()),
+      Iterables.filter(runtimeService.get().listAll(ProgramType.values()),
                        new Predicate<ProgramRuntimeService.RuntimeInfo>() {
       @Override
       public boolean apply(ProgramRuntimeService.RuntimeInfo info) {
