@@ -272,11 +272,9 @@ public final class DefaultNamespaceAdmin implements NamespaceAdmin {
    */
   @Override
   public synchronized void delete(final Id.Namespace namespaceId) throws Exception {
-    NamespaceId namespace = namespaceId.toEntityId();
+    final NamespaceId namespace = namespaceId.toEntityId();
     // TODO: CDAP-870, CDAP-1427: Delete should be in a single transaction.
-    if (!exists(namespaceId)) {
-      throw new NamespaceNotFoundException(namespaceId);
-    }
+    NamespaceMeta namespaceMeta = get(namespaceId);
 
     if (checkProgramsRunning(namespaceId.toEntityId())) {
       throw new NamespaceCannotBeDeletedException(namespaceId,
@@ -287,7 +285,7 @@ public final class DefaultNamespaceAdmin implements NamespaceAdmin {
 
     authorizationEnforcer.enforce(namespace, authenticationContext.getPrincipal(), Action.ADMIN);
 
-    LOG.info("Deleting namespace '{}'.", namespaceId);
+    LOG.info("Deleting namespace '{}'.", namespace);
     try {
       // Delete Preferences associated with this namespace
       preferencesStore.deleteProperties(namespaceId.getId());
@@ -306,43 +304,43 @@ public final class DefaultNamespaceAdmin implements NamespaceAdmin {
       // Delete all meta data
       store.removeAll(namespaceId);
 
-      deleteMetrics(namespaceId.toEntityId());
+      deleteMetrics(namespace);
       // delete all artifacts in the namespace
       artifactRepository.clear(namespaceId.toEntityId());
+
+      LOG.info("All data for namespace '{}' deleted.", namespace);
 
       // Delete the namespace itself, only if it is a non-default namespace. This is because we do not allow users to
       // create default namespace, and hence deleting it may cause undeterministic behavior.
       // Another reason for not deleting the default namespace is that we do not want to call a delete on the default
       // namespace in the storage provider (Hive, HBase, etc), since we re-use their default namespace.
-      if (!Id.Namespace.DEFAULT.equals(namespaceId)) {
-        try {
-          impersonator.doAs(namespace, new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-              // Delete namespace in storage providers
-              storageProviderNamespaceAdmin.delete(namespaceId.toEntityId());
-              return null;
-            }
-          });
-        } finally {
-          // Finally delete namespace from MDS and remove from cache
-          nsStore.delete(namespaceId);
-          namespaceMetaCache.invalidate(namespaceId.toEntityId());
-        }
+      if (!NamespaceId.DEFAULT.equals(namespace)) {
+        impersonator.doAs(namespaceMeta, new Callable<Void>() {
+          @Override
+          public Void call() throws Exception {
+            // Delete namespace in storage providers
+            storageProviderNamespaceAdmin.delete(namespace);
+            return null;
+          }
+        });
+
+        // Finally delete namespace from MDS and remove from cache
+        nsStore.delete(namespaceId);
+        namespaceMetaCache.invalidate(namespace);
+
+        // revoke privileges as the final step. This is done in the end, because if it is done before actual deletion,
+        // and deletion fails, we may have a valid (or invalid) namespace in the system, that no one has privileges on,
+        // so no one can clean up. This may result in orphaned privileges, which will be cleaned up by the create API
+        // if the same namespace is successfully re-created.
+        privilegesManager.revoke(namespace);
+        LOG.info("Namespace '{}' deleted", namespace);
+      } else {
+        LOG.info("Keeping the '{}' namespace after removing all data.", NamespaceId.DEFAULT);
       }
     } catch (Exception e) {
       LOG.warn("Error while deleting namespace {}", namespaceId, e);
       throw new NamespaceCannotBeDeletedException(namespaceId, e);
-    } finally {
-      privilegesManager.revoke(namespace);
     }
-    LOG.info("All data for namespace '{}' deleted.", namespaceId);
-
-    // revoke privileges as the final step. This is done in the end, because if it is done before actual deletion, and
-    // deletion fails, we may have a valid (or invalid) namespace in the system, that no one has privileges on,
-    // so no one can clean up. This may result in orphaned privileges, which will be cleaned up by the create API
-    // if the same namespace is successfully re-created.
-    privilegesManager.revoke(namespace);
   }
 
   private void deleteMetrics(NamespaceId namespaceId) throws Exception {
