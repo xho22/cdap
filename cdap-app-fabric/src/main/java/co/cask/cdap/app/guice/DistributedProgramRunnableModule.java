@@ -140,9 +140,6 @@ public class DistributedProgramRunnableModule {
                            new AbstractModule() {
                              @Override
                              protected void configure() {
-                               bind(InetAddress.class).annotatedWith(Names.named(Constants.AppFabric.SERVER_ADDRESS))
-                                 .toInstance(context.getHost());
-
                                bind(ServiceAnnouncer.class).toInstance(new ServiceAnnouncer() {
                                  @Override
                                  public Cancellable announce(String serviceName, int port) {
