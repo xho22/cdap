@@ -79,6 +79,8 @@ public class AppFabricServer extends AbstractIdleService {
   private final PluginService pluginService;
   private final PrivilegesFetcherProxyService privilegesFetcherProxyService;
   private final RouteStore routeStore;
+  private final int serverPort;
+  private final boolean sslEnabled;
 
   private NettyHttpService httpService;
   private Set<HttpHandler> handlers;
@@ -123,6 +125,14 @@ public class AppFabricServer extends AbstractIdleService {
     this.pluginService = pluginService;
     this.privilegesFetcherProxyService = privilegesFetcherProxyService;
     this.routeStore = routeStore;
+    this.sslEnabled = configuration.getBoolean(Constants.Security.APP_FABRIC_SSL_ENABLED);
+    if (isSSLEnabled()) {
+      this.serverPort = configuration.getInt(Constants.AppFabric.SERVER_SSL_PORT);
+    } else {
+      this.serverPort = configuration.getInt(Constants.AppFabric.SERVER_PORT);
+    }
+
+
   }
 
   /**
@@ -156,7 +166,7 @@ public class AppFabricServer extends AbstractIdleService {
     // Run http service on random port
     httpService = new CommonNettyHttpServiceBuilder(configuration)
       .setHost(hostname.getCanonicalHostName())
-      .setPort(configuration.getInt(Constants.AppFabric.SERVER_PORT))
+      .setPort(serverPort)
       .setHandlerHooks(builder.build())
       .addHttpHandlers(handlers)
       .setConnectionBacklog(configuration.getInt(Constants.AppFabric.BACKLOG_CONNECTIONS,
@@ -231,5 +241,9 @@ public class AppFabricServer extends AbstractIdleService {
     programLifecycleService.stopAndWait();
     pluginService.stopAndWait();
     privilegesFetcherProxyService.stopAndWait();
+  }
+
+  private boolean isSSLEnabled() {
+    return sslEnabled;
   }
 }
