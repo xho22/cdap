@@ -20,7 +20,9 @@ import co.cask.cdap.api.metrics.MetricsCollectionService;
 import co.cask.cdap.app.runtime.ProgramRuntimeService;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
+import co.cask.cdap.common.conf.SConfiguration;
 import co.cask.cdap.common.discovery.ResolvingDiscoverable;
+import co.cask.cdap.common.http.AuthenticationChannelHandler;
 import co.cask.cdap.common.http.CommonNettyHttpServiceBuilder;
 import co.cask.cdap.common.logging.LoggingContextAccessor;
 import co.cask.cdap.common.logging.ServiceLoggingContext;
@@ -34,9 +36,11 @@ import co.cask.cdap.notifications.service.NotificationService;
 import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.route.store.RouteStore;
 import co.cask.cdap.security.authorization.PrivilegesFetcherProxyService;
+import co.cask.cdap.security.tools.SSLHandlerFactory;
 import co.cask.http.HandlerHook;
 import co.cask.http.HttpHandler;
 import co.cask.http.NettyHttpService;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AbstractIdleService;
@@ -48,6 +52,7 @@ import org.apache.twill.common.Threads;
 import org.apache.twill.discovery.Discoverable;
 import org.apache.twill.discovery.DiscoveryService;
 import org.apache.twill.internal.ServiceListenerAdapter;
+import org.jboss.netty.channel.ChannelPipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +86,7 @@ public class AppFabricServer extends AbstractIdleService {
   private final RouteStore routeStore;
   private final int serverPort;
   private final boolean sslEnabled;
+  private final SSLHandlerFactory sslHandlerFactory;
 
   private NettyHttpService httpService;
   private Set<HttpHandler> handlers;
@@ -91,7 +97,7 @@ public class AppFabricServer extends AbstractIdleService {
    * Construct the AppFabricServer with service factory and configuration coming from guice injection.
    */
   @Inject
-  public AppFabricServer(CConfiguration configuration, DiscoveryService discoveryService,
+  public AppFabricServer(CConfiguration configuration, SConfiguration sConf, DiscoveryService discoveryService,
                          SchedulerService schedulerService, NotificationService notificationService,
                          @Named(Constants.Service.MASTER_SERVICES_BIND_ADDRESS) InetAddress hostname,
                          @Named(Constants.AppFabric.HANDLERS_BINDING) Set<HttpHandler> handlers,
@@ -128,11 +134,16 @@ public class AppFabricServer extends AbstractIdleService {
     this.sslEnabled = configuration.getBoolean(Constants.Security.APP_FABRIC_SSL_ENABLED);
     if (isSSLEnabled()) {
       this.serverPort = configuration.getInt(Constants.AppFabric.SERVER_SSL_PORT);
+      this.sslHandlerFactory = new SSLHandlerFactory(
+        sConf.get(Constants.Security.Router.SSL_KEYSTORE_TYPE,
+                  Constants.Security.Router.DEFAULT_SSL_KEYSTORE_TYPE),
+        sConf.get(Constants.Security.Router.SSL_KEYSTORE_PASSWORD),
+        sConf.get(Constants.AppFabric.SERVER_SSL_KEY)
+      );
     } else {
       this.serverPort = configuration.getInt(Constants.AppFabric.SERVER_PORT);
+      this.sslHandlerFactory = null;
     }
-
-
   }
 
   /**
@@ -177,6 +188,13 @@ public class AppFabricServer extends AbstractIdleService {
                                                   Constants.AppFabric.DEFAULT_BOSS_THREADS))
       .setWorkerThreadPoolSize(configuration.getInt(Constants.AppFabric.WORKER_THREADS,
                                                     Constants.AppFabric.DEFAULT_WORKER_THREADS))
+      .modifyChannelPipeline(new Function<ChannelPipeline, ChannelPipeline>() {
+        @Override
+        public ChannelPipeline apply(ChannelPipeline input) {
+          input.addLast("ssl", sslHandlerFactory.create());
+          return input;
+        }
+      })
       .build();
 
     // Add a listener so that when the service started, register with service discovery.

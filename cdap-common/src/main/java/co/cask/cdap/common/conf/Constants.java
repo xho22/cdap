@@ -125,6 +125,7 @@ public final class Constants {
     public static final String SERVER_ADDRESS_DEPRECATED = "app.bind.address";
     public static final String SERVER_PORT = "app.bind.port";
     public static final String SERVER_SSL_PORT = "app.ssl.bind.port";
+    public static final String SERVER_SSL_KEY = "app.ssl.cert.key";
     public static final String SERVER_ANNOUNCE_PORT = "app.announce.port";
     public static final String OUTPUT_DIR = "app.output.dir";
     public static final String TEMP_DIR = "app.temp.dir";

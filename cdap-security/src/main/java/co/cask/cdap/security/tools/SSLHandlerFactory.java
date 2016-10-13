@@ -20,9 +20,15 @@ import org.jboss.netty.handler.ssl.SslHandler;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Security;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -32,6 +38,8 @@ import javax.net.ssl.SSLEngine;
  */
 public class SSLHandlerFactory {
   private static final String protocol = "TLS";
+  private static final String ALGORITHM = "SunX509";
+
   private final SSLContext serverContext;
 
   public SSLHandlerFactory(File keyStore, String keyStoreType, String keyStorePassword, String certificatePassword) {
@@ -44,7 +52,7 @@ public class SSLHandlerFactory {
 
     String algorithm = Security.getProperty("ssl.KeyManagerFactory.algorithm");
     if (algorithm == null) {
-      algorithm = "SunX509";
+      algorithm = ALGORITHM;
     }
 
     try {
@@ -60,6 +68,21 @@ public class SSLHandlerFactory {
       serverContext = SSLContext.getInstance(protocol);
       serverContext.init(kmf.getKeyManagers(), null, null);
     } catch (Exception e) {
+      throw new IllegalArgumentException("Failed to initialize the server-side SSLContext", e);
+    }
+  }
+
+  public SSLHandlerFactory(String keyStoreType, String password, String key) {
+    try {
+      KeyStore ks = KeyStore.getInstance(keyStoreType);
+      ks.load(null, password.toCharArray());
+      SSLCertificateFetcher sslCertificateFetcher;
+      KeyManagerFactory kmf = KeyManagerFactory.getInstance(ALGORITHM);
+      serverContext = SSLContext.getInstance(protocol);
+      kmf.init(ks, password.toCharArray());
+      serverContext.init(kmf.getKeyManagers(), null, null);
+    } catch (NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException
+      | KeyManagementException | UnrecoverableKeyException e) {
       throw new IllegalArgumentException("Failed to initialize the server-side SSLContext", e);
     }
   }
