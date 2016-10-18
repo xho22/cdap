@@ -40,7 +40,8 @@ import java.security.cert.CertificateException;
 /**
  * KMS based implementation. Fetches the private key data from Hadoop KMS.
  */
-public class KMSDataFetcher {
+@SuppressWarnings("unused")
+public class KMSDataFetcher implements SSLCertificateFetcher {
   private static final Logger LOG = LoggerFactory.getLogger(KMSDataFetcher.class);
 
   private static KeyProvider provider;
@@ -62,12 +63,16 @@ public class KMSDataFetcher {
     KeyStore ks = null;
     String password = sConf.get(Constants.Security.AppFabric.SSL_KEYSTORE_PASSWORD);
     try {
-      byte[] keyData = getKeyData(Constants.Security.AppFabric.SSL_CERT_KMS_KEYNAME);
+      byte[] keyData = getKeyData(sConf.get(Constants.Security.AppFabric.APP_FABRIC_SSL_KMS_KEY_NAME));
       InputStream is = new ByteArrayInputStream(keyData);
-      ks = KeyStore.getInstance("JCEKS");
+      ks = KeyStore.getInstance(sConf.get(Constants.Security.AppFabric.SSL_KEYSTORE_TYPE));
       ks.load(is, password.toCharArray());
-    } catch (KeyStoreException | CertificateException | IOException | NoSuchAlgorithmException e) {
-      e.printStackTrace();
+    } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
+      throw new IllegalArgumentException("Failed to create the keystore. Please verify that the following properties " +
+                                           "are set correctly : " +
+                                           "sConf.get(Constants.Security.AppFabric.SSL_KEYSTORE_PASSWORD), " +
+                                           "sConf.get(Constants.Security.AppFabric.APP_FABRIC_SSL_KMS_KEY_NAME), " +
+                                           "sConf.get(Constants.Security.AppFabric.SSL_KEYSTORE_TYPE)");
     }
     return ks;
   }

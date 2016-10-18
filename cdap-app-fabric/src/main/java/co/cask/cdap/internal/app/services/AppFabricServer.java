@@ -139,14 +139,7 @@ public class AppFabricServer extends AbstractIdleService {
     this.sslEnabled = cConf.getBoolean(Constants.Security.AppFabric.SSL_ENABLED);
     if (isSSLEnabled()) {
       this.serverPort = cConf.getInt(Constants.AppFabric.SERVER_SSL_PORT);
-      KeyStore ks;
-      try {
-        ks = sslCertificateFetcher.getSSLKeyStore(sConf);
-      } catch (Throwable e) {
-        throw new RuntimeException("SSL is enabled but the keystore file could not be read. Please verify that the " +
-                                     "keystore file exists and the path is set correctly : "
-                                     + sConf.get(Constants.Security.Router.SSL_KEYSTORE_PATH));
-      }
+      KeyStore ks = sslCertificateFetcher.getSSLKeyStore(sConf);
       String password = sConf.get(Constants.Security.AppFabric.SSL_KEYSTORE_PASSWORD);
       this.sslHandlerFactory = new SSLHandlerFactory(ks, password);
     } else {

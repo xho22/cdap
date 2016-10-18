@@ -31,6 +31,7 @@ import co.cask.cdap.internal.app.runtime.schedule.SchedulerService;
 import co.cask.cdap.notifications.service.NotificationService;
 import co.cask.cdap.route.store.RouteStore;
 import co.cask.cdap.security.authorization.PrivilegesFetcherProxyService;
+import co.cask.cdap.security.tools.SSLCertificateFetcher;
 import co.cask.http.HttpHandler;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -72,11 +73,12 @@ public class StandaloneAppFabricServer extends AppFabricServer {
                                    SystemArtifactLoader systemArtifactLoader,
                                    PluginService pluginService,
                                    PrivilegesFetcherProxyService privilegesFetcherProxyService,
-                                   RouteStore routeStore) {
+                                   RouteStore routeStore,
+                                   SSLCertificateFetcher sslCertificateFetcher) {
     super(cConf, conf, sConf, discoveryService, schedulerService, notificationService, hostname, handlers,
           metricsCollectionService, programRuntimeService, applicationLifecycleService,
           programLifecycleService, streamCoordinatorClient, servicesNames, handlerHookNames, defaultNamespaceEnsurer,
-          systemArtifactLoader, pluginService, privilegesFetcherProxyService, routeStore);
+          systemArtifactLoader, pluginService, privilegesFetcherProxyService, routeStore, sslCertificateFetcher);
     this.metricStore = metricStore;
   }
 

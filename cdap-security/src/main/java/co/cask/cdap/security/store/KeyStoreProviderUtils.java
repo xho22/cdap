@@ -64,7 +64,7 @@ public class KeyStoreProviderUtils {
     try {
       return Class.forName("co.cask.cdap.security.store.KMSDataFetcher");
     } catch (ClassNotFoundException e) {
-      // KMSSecureStore could not be loaded
+      // KMSDataFetcher could not be loaded
       throw new RuntimeException("CDAP KMS classes could not be loaded. " +
                                    "Please verify that CDAP is correctly installed");
     }
