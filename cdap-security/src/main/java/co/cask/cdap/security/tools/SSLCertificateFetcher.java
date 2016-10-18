@@ -16,11 +16,13 @@
 
 package co.cask.cdap.security.tools;
 
-import java.io.IOException;
+import co.cask.cdap.common.conf.SConfiguration;
+
+import java.security.KeyStore;
 
 /**
  * The interface to get private key data for ssl.
  */
 public interface SSLCertificateFetcher {
-  byte[] getKeyData(String key) throws IOException;
+  KeyStore getSSLKeyStore(SConfiguration sConf);
 }

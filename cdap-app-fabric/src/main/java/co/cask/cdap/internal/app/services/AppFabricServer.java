@@ -22,7 +22,6 @@ import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.conf.SConfiguration;
 import co.cask.cdap.common.discovery.ResolvingDiscoverable;
-import co.cask.cdap.common.http.AuthenticationChannelHandler;
 import co.cask.cdap.common.http.CommonNettyHttpServiceBuilder;
 import co.cask.cdap.common.logging.LoggingContextAccessor;
 import co.cask.cdap.common.logging.ServiceLoggingContext;
@@ -36,6 +35,8 @@ import co.cask.cdap.notifications.service.NotificationService;
 import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.route.store.RouteStore;
 import co.cask.cdap.security.authorization.PrivilegesFetcherProxyService;
+import co.cask.cdap.security.store.KeyStoreProviderUtils;
+import co.cask.cdap.security.tools.SSLCertificateFetcher;
 import co.cask.cdap.security.tools.SSLHandlerFactory;
 import co.cask.http.HandlerHook;
 import co.cask.http.HttpHandler;
@@ -47,6 +48,7 @@ import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.Futures;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.twill.common.Cancellable;
 import org.apache.twill.common.Threads;
 import org.apache.twill.discovery.Discoverable;
@@ -58,6 +60,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.security.KeyStore;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -97,7 +100,8 @@ public class AppFabricServer extends AbstractIdleService {
    * Construct the AppFabricServer with service factory and configuration coming from guice injection.
    */
   @Inject
-  public AppFabricServer(CConfiguration configuration, SConfiguration sConf, DiscoveryService discoveryService,
+  public AppFabricServer(CConfiguration cConf, Configuration conf, SConfiguration sConf,
+                         DiscoveryService discoveryService,
                          SchedulerService schedulerService, NotificationService notificationService,
                          @Named(Constants.Service.MASTER_SERVICES_BIND_ADDRESS) InetAddress hostname,
                          @Named(Constants.AppFabric.HANDLERS_BINDING) Set<HttpHandler> handlers,
@@ -112,12 +116,13 @@ public class AppFabricServer extends AbstractIdleService {
                          SystemArtifactLoader systemArtifactLoader,
                          PluginService pluginService,
                          PrivilegesFetcherProxyService privilegesFetcherProxyService,
-                         RouteStore routeStore) {
+                         RouteStore routeStore,
+                         SSLCertificateFetcher sslCertificateFetcher) {
     this.hostname = hostname;
     this.discoveryService = discoveryService;
     this.schedulerService = schedulerService;
     this.handlers = handlers;
-    this.configuration = configuration;
+    this.configuration = cConf;
     this.metricsCollectionService = metricsCollectionService;
     this.programRuntimeService = programRuntimeService;
     this.notificationService = notificationService;
@@ -131,17 +136,21 @@ public class AppFabricServer extends AbstractIdleService {
     this.pluginService = pluginService;
     this.privilegesFetcherProxyService = privilegesFetcherProxyService;
     this.routeStore = routeStore;
-    this.sslEnabled = configuration.getBoolean(Constants.Security.APP_FABRIC_SSL_ENABLED);
+    this.sslEnabled = cConf.getBoolean(Constants.Security.AppFabric.SSL_ENABLED);
     if (isSSLEnabled()) {
-      this.serverPort = configuration.getInt(Constants.AppFabric.SERVER_SSL_PORT);
-      this.sslHandlerFactory = new SSLHandlerFactory(
-        sConf.get(Constants.Security.Router.SSL_KEYSTORE_TYPE,
-                  Constants.Security.Router.DEFAULT_SSL_KEYSTORE_TYPE),
-        sConf.get(Constants.Security.Router.SSL_KEYSTORE_PASSWORD),
-        sConf.get(Constants.AppFabric.SERVER_SSL_KEY)
-      );
+      this.serverPort = cConf.getInt(Constants.AppFabric.SERVER_SSL_PORT);
+      KeyStore ks;
+      try {
+        ks = sslCertificateFetcher.getSSLKeyStore(sConf);
+      } catch (Throwable e) {
+        throw new RuntimeException("SSL is enabled but the keystore file could not be read. Please verify that the " +
+                                     "keystore file exists and the path is set correctly : "
+                                     + sConf.get(Constants.Security.Router.SSL_KEYSTORE_PATH));
+      }
+      String password = sConf.get(Constants.Security.AppFabric.SSL_KEYSTORE_PASSWORD);
+      this.sslHandlerFactory = new SSLHandlerFactory(ks, password);
     } else {
-      this.serverPort = configuration.getInt(Constants.AppFabric.SERVER_PORT);
+      this.serverPort = cConf.getInt(Constants.AppFabric.SERVER_PORT);
       this.sslHandlerFactory = null;
     }
   }
@@ -191,6 +200,7 @@ public class AppFabricServer extends AbstractIdleService {
       .modifyChannelPipeline(new Function<ChannelPipeline, ChannelPipeline>() {
         @Override
         public ChannelPipeline apply(ChannelPipeline input) {
+          LOG.debug("Adding ssl handler to the pipeline.");
           input.addLast("ssl", sslHandlerFactory.create());
           return input;
         }

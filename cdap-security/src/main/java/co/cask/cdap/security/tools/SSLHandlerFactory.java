@@ -16,6 +16,7 @@
 
 package co.cask.cdap.security.tools;
 
+import org.apache.hadoop.conf.Configuration;
 import org.jboss.netty.handler.ssl.SslHandler;
 
 import java.io.File;
@@ -72,17 +73,13 @@ public class SSLHandlerFactory {
     }
   }
 
-  public SSLHandlerFactory(String keyStoreType, String password, String key) {
+  public SSLHandlerFactory(KeyStore keyStore, String password) {
     try {
-      KeyStore ks = KeyStore.getInstance(keyStoreType);
-      ks.load(null, password.toCharArray());
-      SSLCertificateFetcher sslCertificateFetcher;
       KeyManagerFactory kmf = KeyManagerFactory.getInstance(ALGORITHM);
       serverContext = SSLContext.getInstance(protocol);
-      kmf.init(ks, password.toCharArray());
+      kmf.init(keyStore, password.toCharArray());
       serverContext.init(kmf.getKeyManagers(), null, null);
-    } catch (NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException
-      | KeyManagementException | UnrecoverableKeyException e) {
+    } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException | UnrecoverableKeyException e) {
       throw new IllegalArgumentException("Failed to initialize the server-side SSLContext", e);
     }
   }

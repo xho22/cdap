@@ -18,11 +18,16 @@ package co.cask.cdap.security.store;
 
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
+import co.cask.cdap.common.conf.SConfiguration;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.security.KeyStore;
 
 /**
  * Utility class for secure store.
  */
-public class SecureStoreUtils {
+public class KeyStoreProviderUtils {
   private static final String KMS_BACKED = "kms";
   private static final String FILE_BACKED = "file";
 
@@ -48,6 +53,16 @@ public class SecureStoreUtils {
   public static Class<?> getKMSSecureStore() {
     try {
       return Class.forName("co.cask.cdap.security.store.KMSSecureStore");
+    } catch (ClassNotFoundException e) {
+      // KMSSecureStore could not be loaded
+      throw new RuntimeException("CDAP KMS classes could not be loaded. " +
+                                   "Please verify that CDAP is correctly installed");
+    }
+  }
+
+  public static Class<?> getKMSDataFetcher() {
+    try {
+      return Class.forName("co.cask.cdap.security.store.KMSDataFetcher");
     } catch (ClassNotFoundException e) {
       // KMSSecureStore could not be loaded
       throw new RuntimeException("CDAP KMS classes could not be loaded. " +

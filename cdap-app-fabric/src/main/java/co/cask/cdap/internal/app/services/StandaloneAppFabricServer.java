@@ -34,6 +34,7 @@ import co.cask.cdap.security.authorization.PrivilegesFetcherProxyService;
 import co.cask.http.HttpHandler;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.twill.discovery.DiscoveryService;
 
 import java.net.InetAddress;
@@ -51,7 +52,8 @@ public class StandaloneAppFabricServer extends AppFabricServer {
    * Construct the Standalone AppFabricServer with service factory and configuration coming from guice injection.
    */
   @Inject
-  public StandaloneAppFabricServer(CConfiguration configuration,
+  public StandaloneAppFabricServer(CConfiguration cConf,
+                                   Configuration conf,
                                    SConfiguration sConf,
                                    DiscoveryService discoveryService,
                                    SchedulerService schedulerService,
@@ -71,7 +73,7 @@ public class StandaloneAppFabricServer extends AppFabricServer {
                                    PluginService pluginService,
                                    PrivilegesFetcherProxyService privilegesFetcherProxyService,
                                    RouteStore routeStore) {
-    super(configuration, sConf, discoveryService, schedulerService, notificationService, hostname, handlers,
+    super(cConf, conf, sConf, discoveryService, schedulerService, notificationService, hostname, handlers,
           metricsCollectionService, programRuntimeService, applicationLifecycleService,
           programLifecycleService, streamCoordinatorClient, servicesNames, handlerHookNames, defaultNamespaceEnsurer,
           systemArtifactLoader, pluginService, privilegesFetcherProxyService, routeStore);

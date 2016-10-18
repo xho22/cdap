@@ -25,7 +25,7 @@ import co.cask.cdap.common.runtime.RuntimeModule;
 import co.cask.cdap.security.store.DefaultSecureStoreService;
 import co.cask.cdap.security.store.DummySecureStore;
 import co.cask.cdap.security.store.FileSecureStore;
-import co.cask.cdap.security.store.SecureStoreUtils;
+import co.cask.cdap.security.store.KeyStoreProviderUtils;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -132,9 +132,9 @@ public class SecureStoreModules extends RuntimeModule {
     @Override
     @SuppressWarnings("unchecked")
     public T get() {
-      boolean kmsBacked = SecureStoreUtils.isKMSBacked(cConf);
-      if (kmsBacked && SecureStoreUtils.isKMSCapable()) {
-        return (T) injector.getInstance(SecureStoreUtils.getKMSSecureStore());
+      boolean kmsBacked = KeyStoreProviderUtils.isKMSBacked(cConf);
+      if (kmsBacked && KeyStoreProviderUtils.isKMSCapable()) {
+        return (T) injector.getInstance(KeyStoreProviderUtils.getKMSSecureStore());
       }
       if (kmsBacked) {
         throw new IllegalArgumentException("Could not find classes required for supporting KMS based secure store. " +
@@ -144,7 +144,7 @@ public class SecureStoreModules extends RuntimeModule {
                                              "distribution versions that are based on Apache Hadoop 2.6.0 and up.");
       }
 
-      if (SecureStoreUtils.isFileBacked(cConf)) {
+      if (KeyStoreProviderUtils.isFileBacked(cConf)) {
         throw new IllegalArgumentException("Only KMS based provider is supported in distributed mode. " +
                    "To be able to use secure store in a distributed environment you" +
                    "will need to use the Hadoop KMS based provider.");
@@ -169,7 +169,7 @@ public class SecureStoreModules extends RuntimeModule {
     @Override
     @SuppressWarnings("unchecked")
     public T get() {
-      boolean fileBacked = SecureStoreUtils.isFileBacked(cConf);
+      boolean fileBacked = KeyStoreProviderUtils.isFileBacked(cConf);
       boolean validPassword = !Strings.isNullOrEmpty(sConf.get(Constants.Security.Store.FILE_PASSWORD));
 
       if (fileBacked && validPassword) {
@@ -180,7 +180,7 @@ public class SecureStoreModules extends RuntimeModule {
                                              "Please set the \"security.store.file.password\" property in your " +
                                              "cdap-security.xml.");
       }
-      if (SecureStoreUtils.isKMSBacked(cConf)) {
+      if (KeyStoreProviderUtils.isKMSBacked(cConf)) {
         throw new IllegalArgumentException("Only file based secure store is supported in InMemory/Standalone modes. " +
                                              "Please set the \"security.store.provider\" property in cdap-site.xml " +
                                              "to file and set the \"security.store.file.password\" property in " +

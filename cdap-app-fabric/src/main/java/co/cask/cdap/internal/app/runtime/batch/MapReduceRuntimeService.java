@@ -62,7 +62,7 @@ import co.cask.cdap.proto.id.StreamId;
 import co.cask.cdap.proto.security.Action;
 import co.cask.cdap.security.spi.authentication.AuthenticationContext;
 import co.cask.cdap.security.spi.authorization.AuthorizationEnforcer;
-import co.cask.cdap.security.store.SecureStoreUtils;
+import co.cask.cdap.security.store.KeyStoreProviderUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -910,8 +910,8 @@ final class MapReduceRuntimeService extends AbstractExecutionThreadService {
     // End of MAPREDUCE-5957.
 
     // Add KMS class
-    if (SecureStoreUtils.isKMSBacked(cConf) && SecureStoreUtils.isKMSCapable()) {
-      classes.add(SecureStoreUtils.getKMSSecureStore());
+    if (KeyStoreProviderUtils.isKMSBacked(cConf) && KeyStoreProviderUtils.isKMSCapable()) {
+      classes.add(KeyStoreProviderUtils.getKMSSecureStore());
     }
 
     try {

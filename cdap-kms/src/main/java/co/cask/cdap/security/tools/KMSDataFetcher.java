@@ -16,6 +16,8 @@
 
 package co.cask.cdap.security.tools;
 
+import co.cask.cdap.common.conf.Constants;
+import co.cask.cdap.common.conf.SConfiguration;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import org.apache.hadoop.conf.Configuration;
@@ -25,22 +27,26 @@ import org.apache.hadoop.crypto.key.kms.KMSClientProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 
 /**
  * KMS based implementation. Fetches the private key data from Hadoop KMS.
  */
-public class KMSDataFetcher implements SSLCertificateFetcher {
+public class KMSDataFetcher {
   private static final Logger LOG = LoggerFactory.getLogger(KMSDataFetcher.class);
 
-  private final KeyProvider provider;
-  private final Configuration conf;
+  private static KeyProvider provider;
 
   @Inject
   public KMSDataFetcher(Configuration conf) throws IOException, URISyntaxException {
-    this.conf = conf;
     String keyProviderPath = conf.get(KeyProviderFactory.KEY_PROVIDER_PATH);
     if (Strings.isNullOrEmpty(keyProviderPath)) {
       throw new IllegalArgumentException("Could not find the key provider URI. Please make sure that " +
@@ -52,7 +58,21 @@ public class KMSDataFetcher implements SSLCertificateFetcher {
     LOG.debug("Key provider initialized successfully.");
   }
 
-  public byte[] getKeyData(String key) throws IOException {
+  public KeyStore getSSLKeyStore(SConfiguration sConf) {
+    KeyStore ks = null;
+    String password = sConf.get(Constants.Security.AppFabric.SSL_KEYSTORE_PASSWORD);
+    try {
+      byte[] keyData = getKeyData(Constants.Security.AppFabric.SSL_CERT_KMS_KEYNAME);
+      InputStream is = new ByteArrayInputStream(keyData);
+      ks = KeyStore.getInstance("JCEKS");
+      ks.load(is, password.toCharArray());
+    } catch (KeyStoreException | CertificateException | IOException | NoSuchAlgorithmException e) {
+      e.printStackTrace();
+    }
+    return ks;
+  }
+
+  private byte[] getKeyData(String key) throws IOException {
     KeyProvider.KeyVersion keyVersion = provider.getCurrentKey(key);
     return keyVersion.getMaterial();
   }

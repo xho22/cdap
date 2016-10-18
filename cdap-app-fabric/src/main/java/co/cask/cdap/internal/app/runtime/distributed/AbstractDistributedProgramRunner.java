@@ -39,7 +39,7 @@ import co.cask.cdap.internal.app.runtime.codec.ArgumentsCodec;
 import co.cask.cdap.internal.app.runtime.codec.ProgramOptionsCodec;
 import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.security.TokenSecureStoreUpdater;
-import co.cask.cdap.security.store.SecureStoreUtils;
+import co.cask.cdap.security.store.KeyStoreProviderUtils;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -333,8 +333,8 @@ public abstract class AbstractDistributedProgramRunner implements ProgramRunner 
   }
 
   private static List<? extends Class<?>> getKMSSecureStore(CConfiguration cConf) {
-    if (SecureStoreUtils.isKMSBacked(cConf) && SecureStoreUtils.isKMSCapable()) {
-      return Collections.singletonList(SecureStoreUtils.getKMSSecureStore());
+    if (KeyStoreProviderUtils.isKMSBacked(cConf) && KeyStoreProviderUtils.isKMSCapable()) {
+      return Collections.singletonList(KeyStoreProviderUtils.getKMSSecureStore());
     } else {
       return Collections.EMPTY_LIST;
     }

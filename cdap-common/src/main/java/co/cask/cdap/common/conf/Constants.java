@@ -723,8 +723,21 @@ public final class Constants {
     public static final String BASIC_REALM_FILE = "security.authentication.basic.realmfile";
     /** Enables SSL */
     public static final String SSL_ENABLED = "ssl.enabled";
-    /** Enables SSL for app fabric server. */
-    public static final String APP_FABRIC_SSL_ENABLED = "app.fabric.ssl.enabled";
+    /** URL for the KMS server */
+    public static final String KEY_PROVIDER_PATH = "security.key.provider.path";
+
+    /**
+     * App Fabric
+     */
+    public static final class AppFabric {
+      /** Enables SSL for app fabric server. */
+      public static final String SSL_ENABLED = "app.fabric.ssl.enabled";
+      /** Password for the java keystore. */
+      public static final String SSL_KEYSTORE_PASSWORD = "app.fabric.ssl.enabled";
+      /** Password for the java keystore. */
+      public static final String SSL_CERT_KMS_KEYNAME = "app.fabric.ssl.enabled";
+    }
+
     /**
      * Authorization.
      */
