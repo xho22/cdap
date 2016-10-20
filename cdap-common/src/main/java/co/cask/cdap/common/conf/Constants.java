@@ -733,6 +733,8 @@ public final class Constants {
       /** Enables SSL for app fabric server. */
       public static final String SSL_ENABLED = "app.fabric.ssl.enabled";
       /** Password for the java keystore. */
+      public static final String SSL_FILE_KEYSTORE_PATH = "app.fabric.ssl.keystore.path";
+      /** Password for the java keystore. */
       public static final String SSL_KEYSTORE_PASSWORD = "app.fabric.ssl.password";
       /** Type for the java keystore. */
       public static final String SSL_KEYSTORE_TYPE = "app.fabric.ssl.keystore.type";

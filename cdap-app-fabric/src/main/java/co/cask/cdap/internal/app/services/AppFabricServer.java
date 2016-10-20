@@ -35,8 +35,7 @@ import co.cask.cdap.notifications.service.NotificationService;
 import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.route.store.RouteStore;
 import co.cask.cdap.security.authorization.PrivilegesFetcherProxyService;
-import co.cask.cdap.security.store.KeyStoreProviderUtils;
-import co.cask.cdap.security.tools.SSLCertificateFetcher;
+import co.cask.cdap.security.tools.GeneratedCertKeyStoreCreator;
 import co.cask.cdap.security.tools.SSLHandlerFactory;
 import co.cask.http.HandlerHook;
 import co.cask.http.HttpHandler;
@@ -116,8 +115,7 @@ public class AppFabricServer extends AbstractIdleService {
                          SystemArtifactLoader systemArtifactLoader,
                          PluginService pluginService,
                          PrivilegesFetcherProxyService privilegesFetcherProxyService,
-                         RouteStore routeStore,
-                         SSLCertificateFetcher sslCertificateFetcher) {
+                         RouteStore routeStore) {
     this.hostname = hostname;
     this.discoveryService = discoveryService;
     this.schedulerService = schedulerService;
@@ -139,7 +137,7 @@ public class AppFabricServer extends AbstractIdleService {
     this.sslEnabled = cConf.getBoolean(Constants.Security.AppFabric.SSL_ENABLED);
     if (isSSLEnabled()) {
       this.serverPort = cConf.getInt(Constants.AppFabric.SERVER_SSL_PORT);
-      KeyStore ks = sslCertificateFetcher.getSSLKeyStore(sConf);
+      KeyStore ks = GeneratedCertKeyStoreCreator.getSSLKeyStore(sConf);
       String password = sConf.get(Constants.Security.AppFabric.SSL_KEYSTORE_PASSWORD);
       this.sslHandlerFactory = new SSLHandlerFactory(ks, password);
     } else {

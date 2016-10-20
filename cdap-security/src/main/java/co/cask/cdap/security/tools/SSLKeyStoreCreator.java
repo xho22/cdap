@@ -23,6 +23,6 @@ import java.security.KeyStore;
 /**
  * The interface to get private key data for ssl.
  */
-public interface SSLCertificateFetcher {
+public interface SSLKeyStoreCreator {
   KeyStore getSSLKeyStore(SConfiguration sConf);
 }

@@ -41,13 +41,13 @@ import java.security.cert.CertificateException;
  * KMS based implementation. Fetches the private key data from Hadoop KMS.
  */
 @SuppressWarnings("unused")
-public class KMSDataFetcher implements SSLCertificateFetcher {
-  private static final Logger LOG = LoggerFactory.getLogger(KMSDataFetcher.class);
+public class KeyProviderSSLKeyStoreCreator implements SSLKeyStoreCreator {
+  private static final Logger LOG = LoggerFactory.getLogger(KeyProviderSSLKeyStoreCreator.class);
 
   private static KeyProvider provider;
 
   @Inject
-  public KMSDataFetcher(Configuration conf) throws IOException, URISyntaxException {
+  public KeyProviderSSLKeyStoreCreator(Configuration conf) throws IOException, URISyntaxException {
     String keyProviderPath = conf.get(KeyProviderFactory.KEY_PROVIDER_PATH);
     if (Strings.isNullOrEmpty(keyProviderPath)) {
       throw new IllegalArgumentException("Could not find the key provider URI. Please make sure that " +
@@ -62,6 +62,10 @@ public class KMSDataFetcher implements SSLCertificateFetcher {
   public KeyStore getSSLKeyStore(SConfiguration sConf) {
     KeyStore ks = null;
     String password = sConf.get(Constants.Security.AppFabric.SSL_KEYSTORE_PASSWORD);
+    if (password == null) {
+      throw new IllegalArgumentException("KeyStore Password Not Configured");
+    }
+
     try {
       byte[] keyData = getKeyData(sConf.get(Constants.Security.AppFabric.APP_FABRIC_SSL_KMS_KEY_NAME));
       InputStream is = new ByteArrayInputStream(keyData);

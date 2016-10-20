@@ -104,7 +104,7 @@ import co.cask.cdap.route.store.ZKRouteStore;
 import co.cask.cdap.security.DefaultUGIProvider;
 import co.cask.cdap.security.auth.context.AuthenticationContextModules;
 import co.cask.cdap.security.store.KeyStoreProviderUtils;
-import co.cask.cdap.security.tools.SSLCertificateFetcher;
+import co.cask.cdap.security.tools.SSLKeyStoreCreator;
 import co.cask.http.HttpHandler;
 import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
@@ -323,7 +323,6 @@ public final class AppFabricServiceRuntimeModule extends RuntimeModule {
       bind(RuntimeStore.class).to(DefaultStore.class);
       bind(ArtifactStore.class).in(Scopes.SINGLETON);
       bind(ProgramLifecycleService.class).in(Scopes.SINGLETON);
-      bind(SSLCertificateFetcher.class).toProvider(new TypeLiteral<SSLCertProvider<SSLCertificateFetcher>>() { });
 
       install(new PrivateModule() {
         @Override
@@ -373,20 +372,6 @@ public final class AppFabricServiceRuntimeModule extends RuntimeModule {
     public InetAddress providesHostname(CConfiguration cConf) {
       String address = cConf.get(Constants.Service.MASTER_SERVICES_BIND_ADDRESS);
       return Networks.resolve(address, new InetSocketAddress("localhost", 0).getAddress());
-    }
-
-    private static final class SSLCertProvider<T> implements Provider<T> {
-      private final Injector injector;
-
-      @Inject
-      private SSLCertProvider(Injector injector) {
-        this.injector = injector;
-      }
-
-      @Override
-      public T get() {
-        return (T) injector.getInstance(KeyStoreProviderUtils.getKMSDataFetcher());
-      }
     }
 
     /**
