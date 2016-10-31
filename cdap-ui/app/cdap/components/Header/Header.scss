@@ -19,6 +19,25 @@
 $navbar-brand-bg: #363945;
 $navbar-height: 50px;
 
+@mixin product-navbar-mixins($border-product-color, $active-link-color) {
+  .brand-header .navbar-brand { border-color: $border-product-color; }
+  .navbar-list {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    a {
+      &:hover,
+      &.active {
+        color: $active-link-color;
+      }
+      color: #ccc;
+    }
+  }
+}
+
 .cask-header {
   .navbar {
     height: $navbar-height;
@@ -27,9 +46,9 @@ $navbar-height: 50px;
     border: 0;
     font-weight: 500;
 
-    &.cdap { .product-navbar-mixins($cdap-orange, $cdap-orange); }
-    &.hydrator { .product-navbar-mixins($hydrator-blue, #43AAFF); }
-    &.tracker { .product-navbar-mixins($tracker-green, $tracker-green); }
+    &.cdap { @include product-navbar-mixins($cdap-orange, $cdap-orange); }
+    &.hydrator { @include product-navbar-mixins($hydrator-blue, #43AAFF); }
+    &.tracker { @include product-navbar-mixins($tracker-green, $tracker-green); }
     .brand-header {
       float: left;
       a { color: white; }
@@ -138,24 +157,5 @@ $navbar-height: 50px;
     right: 0;
     background: rgba(0, 0, 0, 0.6);
     z-index: 1040;
-  }
-}
-
-@mixin product-navbar-mixins($border-product-color, $active-link-color) {
-  .brand-header .navbar-brand { border-color: $border-product-color; }
-  .navbar-list {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    a {
-      &:hover,
-      &.active {
-        color: $active-link-color;
-      }
-      color: #ccc;
-    }
   }
 }

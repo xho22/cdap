@@ -17,7 +17,7 @@ import React, { PropTypes } from 'react';
 import { Input } from 'reactstrap';
 import SelectWithOptions from 'components/SelectWithOptions';
 
-require('./FieldRow.less');
+require('./FieldRow.scss');
 const defaultFieldTypes = [
   '',
   'boolean',

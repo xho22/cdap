@@ -25,7 +25,7 @@ import T from 'i18n-react';
 import find from 'lodash/find';
 import NamespaceStore from 'services/NamespaceStore';
 
-require('./ArtifactUpload.less');
+require('./ArtifactUpload.scss');
 
 export default class ArtifactUploadWizard extends Component {
   constructor(props) {

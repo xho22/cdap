@@ -25,7 +25,7 @@ import StreamMetrics from './StreamMetrics';
 import classnames from 'classnames';
 import FastActions from 'components/EntityCard/FastActions';
 
-require('./EntityCard.less');
+require('./EntityCard.scss');
 
 export default class EntityCard extends Component {
   constructor(props) {

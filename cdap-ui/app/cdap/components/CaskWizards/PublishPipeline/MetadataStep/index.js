@@ -19,7 +19,7 @@ import PublishPipelineAction from 'services/WizardStores/PublishPipeline/Publish
 import {connect, Provider} from 'react-redux';
 import {Input, Form, FormGroup, Col, Label} from 'reactstrap';
 import T from 'i18n-react';
-require('./MetadataStep.less');
+require('./MetadataStep.scss');
 
 const mapStateToPipelineNameProps = (state) => {
   return {

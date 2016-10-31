@@ -25,7 +25,7 @@ import SpotlightModal from 'components/SpotlightSearch/SpotlightModal';
 import Mousetrap from 'mousetrap';
 import T from 'i18n-react';
 import shortid from 'shortid';
-require('./SpotlightSearch.less');
+require('./SpotlightSearch.scss');
 
 const keyMap = {
   enter: 13,

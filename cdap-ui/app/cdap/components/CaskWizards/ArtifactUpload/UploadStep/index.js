@@ -22,7 +22,7 @@ import { Form, FormGroup, Col, Label } from 'reactstrap';
 import Dropzone from 'react-dropzone';
 import T from 'i18n-react';
 
-require('./UploadStep.less');
+require('./UploadStep.scss');
 
 const DragNDropFile = ({file, onDropHandler}) => {
   return (

@@ -18,7 +18,7 @@ import React, {PropTypes, Component} from 'react';
 import { Modal, ModalHeader, ModalBody } from 'reactstrap';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import CaskVideo from '../CaskVideo';
-require('./CaskVideoModal.less');
+require('./CaskVideoModal.scss');
 
 export default class CaskVideoModal extends Component {
   constructor(props) {

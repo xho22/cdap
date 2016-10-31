@@ -20,7 +20,7 @@ import AdminNodeMetadataPane from '../AdminNodeMetadataPane/index.js';
 import AdminVirtualCoresMetadataPane from '../AdminVirtualCoresMetadataPane/index.js';
 
 import React, {PropTypes} from 'react';
-require('./AdminDetailPanel.less');
+require('./AdminDetailPanel.scss');
 
 const propTypes = {
   applicationName: PropTypes.string,

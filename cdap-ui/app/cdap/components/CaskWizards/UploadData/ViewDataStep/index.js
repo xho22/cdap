@@ -18,7 +18,7 @@ import { connect, Provider } from 'react-redux';
 import UploadDataStore from 'services/WizardStores/UploadData/UploadDataStore';
 import UploadDataActionCreator from 'services/WizardStores/UploadData/ActionCreator';
 import fileDownload from 'react-file-download';
-require('./ViewDataStep.less');
+require('./ViewDataStep.scss');
 
 const mapStateWithProps = (state) => {
   return {

@@ -15,7 +15,7 @@
  */
 
 import React, {PropTypes} from 'react';
-require('./ServiceStatus.less');
+require('./ServiceStatus.scss');
 var classNames = require('classnames');
 
 const propTypes = {

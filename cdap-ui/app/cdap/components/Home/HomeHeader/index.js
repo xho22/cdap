@@ -19,7 +19,7 @@ import { Dropdown, DropdownToggle, DropdownMenu, DropdownItem } from 'reactstrap
 import T from 'i18n-react';
 import debounce from 'lodash/debounce';
 
-require('./HomeHeader.less');
+require('./HomeHeader.scss');
 
 export default class HomeHeader extends Component {
   constructor(props) {

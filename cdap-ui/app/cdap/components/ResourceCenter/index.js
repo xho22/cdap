@@ -21,7 +21,7 @@ import HydratorPipeline from 'components/CaskWizards/HydratorPipeline';
 import CreateStreamWithUploadStore from 'services/WizardStores/CreateStreamWithUpload/CreateStreamWithUploadStore';
 import T from 'i18n-react';
 
-require('./ResourceCenter.less');
+require('./ResourceCenter.scss');
 
 export default class ResourceCenter extends Component {
   constructor(props) {

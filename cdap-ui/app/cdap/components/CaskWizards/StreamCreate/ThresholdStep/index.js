@@ -18,7 +18,7 @@ import {connect, Provider} from 'react-redux';
 import {Input, FormGroup, Form, Col} from 'reactstrap';
 import T from 'i18n-react';
 
-require('./ThresholdStep.less');
+require('./ThresholdStep.scss');
 import CreateStreamActions  from 'services/WizardStores/CreateStream/CreateStreamActions';
 import CreateStreamStore from 'services/WizardStores/CreateStream/CreateStreamStore';
 const mapStateToStreamThresholdProps = (state) => {

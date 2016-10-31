@@ -41,14 +41,14 @@ footer {
   div.text-muted {
     margin: 10px 0;
 
-    > div {
-      @media (min-width: $screen-md-max) {
-        &:first-child { text-align: left; }
-        &:last-child { text-align: right; }
-      }
+    // > div {
+    //   @media (min-width: $screen-md-max) {
+    //     &:first-child { text-align: left; }
+    //     &:last-child { text-align: right; }
+    //   }
 
-      @media (max-width: $screen-md-max) { text-align: center; }
-    }
+    //   @media (max-width: $screen-md-max) { text-align: center; }
+    // }
   }
   img {
     height: 26px;

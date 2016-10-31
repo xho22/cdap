@@ -23,7 +23,7 @@
     />
 */
 import React, {Component, PropTypes} from 'react';
-require('./CardActionFeedback.less');
+require('./CardActionFeedback.scss');
 
 var classNames = require('classnames');
 

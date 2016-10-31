@@ -15,7 +15,7 @@
  */
 
 import React from 'react';
-require('./AdminNodeMetadataPane.less');
+require('./AdminNodeMetadataPane.scss');
 import StatContainer from '../StatContainer/index.js';
 var classNames = require('classnames');
 

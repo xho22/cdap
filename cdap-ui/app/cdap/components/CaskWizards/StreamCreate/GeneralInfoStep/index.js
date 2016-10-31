@@ -22,7 +22,7 @@ import InputWithValidations from 'components/InputWithValidations';
 import T from 'i18n-react';
 
 import { connect, Provider } from 'react-redux';
-require('./GeneralInfoStep.less');
+require('./GeneralInfoStep.scss');
 const mapStateToStreamNameProps = (state) => {
   return {
     value: state.general.name,

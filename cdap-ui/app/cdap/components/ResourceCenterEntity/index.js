@@ -16,7 +16,7 @@
 import React, {PropTypes} from 'react';
 import classnames from 'classnames';
 
-require('./ResourceCenterEntity.less');
+require('./ResourceCenterEntity.scss');
 
 export default function ResourceCenterEntity({className, iconClassName, title, description, actionLabel, onClick, disabled}) {
   return (

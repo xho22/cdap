@@ -23,7 +23,7 @@ import classnames from 'classnames';
 import shortid from 'shortid';
 import moment from 'moment';
 
-require('./MarketEntityModal.less');
+require('./MarketEntityModal.scss');
 
 export default class MarketEntityModal extends Component {
   constructor(props) {

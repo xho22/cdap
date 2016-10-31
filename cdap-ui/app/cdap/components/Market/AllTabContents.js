@@ -22,7 +22,7 @@ import MarketStore from './store/market-store.js';
 import Fuse from 'fuse.js';
 import MarketEntityModal from 'components/MarketEntityModal';
 import {MyMarketApi} from '../../api/market';
-require('./AllTabContents.less');
+require('./AllTabContents.scss');
 
 export default class AllTabContents extends Component {
   constructor(props) {

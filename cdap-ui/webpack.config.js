@@ -19,6 +19,6 @@ var loginWebpackConfig = require('./webpack.config.login.js');
 var commonWebpackConfig = require('./webpack.config.common.js');
 module.exports = [
   cdapWebpackConfig,
-  loginWebpackConfig,
+  // loginWebpackConfig,
   commonWebpackConfig
 ];

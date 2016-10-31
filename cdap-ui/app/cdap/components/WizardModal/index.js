@@ -18,7 +18,7 @@ import {Modal, ModalBody, ModalHeader} from 'reactstrap';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import classnames from 'classnames';
 
-require('./WizardModal.less');
+require('./WizardModal.scss');
 
 export default function WizardModal({children, title, isOpen, toggle, className, backdrop}) {
   return (

@@ -19,7 +19,7 @@ import UploadDataStore from 'services/WizardStores/UploadData/UploadDataStore';
 import UploadDataActions from 'services/WizardStores/UploadData/UploadDataActions';
 import SelectWithOptions from 'components/SelectWithOptions';
 import {Input, Form, FormGroup, Col, Label} from 'reactstrap';
-require('./SelectDestination.less');
+require('./SelectDestination.scss');
 import T from 'i18n-react';
 
 const mapStateToDestinationTypeProps = (state) => {

@@ -24,7 +24,7 @@ import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import classNames from 'classnames';
 import T from 'i18n-react';
 
-require('./PlusButtonModal.less');
+require('./PlusButtonModal.scss');
 
 export default class PlusButtonModal extends Component {
   constructor(props) {

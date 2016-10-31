@@ -17,7 +17,7 @@ import React, {Component, PropTypes} from 'react';
 import {connect, Provider} from 'react-redux';
 
 import {Form} from 'reactstrap';
-require('./UploadData.less');
+require('./UploadData.scss');
 import Dropzone from 'react-dropzone';
 import CreateStreamWithUploadActions from 'services/WizardStores/CreateStreamWithUpload/CreateStreamWithUploadActions';
 import CreateStreamWithUploadStore from 'services/WizardStores/CreateStreamWithUpload/CreateStreamWithUploadStore';

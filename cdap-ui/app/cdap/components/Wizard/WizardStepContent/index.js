@@ -15,7 +15,7 @@
  */
 
 import React, {PropTypes} from 'react';
-require('./WizardStepContent.less');
+require('./WizardStepContent.scss');
 
 export default function WizardStepContent(props) {
   const {

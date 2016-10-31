@@ -33,7 +33,7 @@ import {
   PaginationLink
 } from 'reactstrap';
 
-require('./SpotlightModal.less');
+require('./SpotlightModal.scss');
 
 const PAGE_SIZE = 10;
 

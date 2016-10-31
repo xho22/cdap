@@ -25,7 +25,7 @@ import NamespaceStore from 'services/NamespaceStore';
 
 import CreateStreamWizardConfig, {CreateStreamUploadWizardConfig} from 'services/WizardConfigs/CreateStreamWizardConfig';
 import T from 'i18n-react';
-require('./StreamCreate.less');
+require('./StreamCreate.scss');
 
 export default class StreamCreateWizard extends Component {
   constructor(props) {

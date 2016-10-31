@@ -19,7 +19,7 @@ import findIndex from 'lodash/findIndex';
 import first from 'lodash/head';
 import T from 'i18n-react';
 
-require('./Wizard.less');
+require('./Wizard.scss');
 import shortid from 'shortid';
 import WizardStepHeader from './WizardStepHeader';
 import WizardStepContent from './WizardStepContent';

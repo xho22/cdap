@@ -16,7 +16,7 @@
 
 import React, { Component, PropTypes } from 'react';
 import 'whatwg-fetch';
-require('./SplashScreen.less');
+require('./SplashScreen.scss');
 
 import Card from '../Card';
 import MyUserStoreApi from '../../api/userstore';

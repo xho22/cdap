@@ -23,7 +23,7 @@ import NamespaceStore from 'services/NamespaceStore';
 import T from 'i18n-react';
 const shortid = require('shortid');
 const classNames = require('classnames');
-require('./Home.less');
+require('./Home.scss');
 
 const defaultFilter = ['app', 'dataset', 'stream'];
 

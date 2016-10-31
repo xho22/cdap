@@ -35,8 +35,8 @@ var plugins = [
 ];
 var loaders = [
   {
-    test: /\.less$/,
-    loader: 'style-loader!css-loader!less-loader'
+    test: /\.scss$/,
+    loader: 'style-loader!css-loader!sass-loader'
   },
   {
     test: /\.ya?ml$/,
@@ -44,7 +44,7 @@ var loaders = [
   },
   {
     test: /\.css$/,
-    loader: 'style-loader!css-loader!less-loader'
+    loader: 'style-loader!css-loader!sass-loader'
   },
   {
     test: /\.js$/,

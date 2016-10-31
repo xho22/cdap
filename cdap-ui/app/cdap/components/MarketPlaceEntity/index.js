@@ -15,7 +15,7 @@
  */
 import React, {PropTypes} from 'react';
 import classnames from 'classnames';
-require('./MarketPlaceEntity.less');
+require('./MarketPlaceEntity.scss');
 
 export default function MarketPlaceEntity({size, className, style, name, subtitle, icon, onClick}) {
   return (

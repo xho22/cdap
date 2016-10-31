@@ -21,7 +21,7 @@ import AbstractWizard from 'components/AbstractWizard';
 import NamespaceStore from 'services/NamespaceStore';
 import {Link} from 'react-router';
 const shortid = require('shortid');
-require('./NamespaceDropdown.less');
+require('./NamespaceDropdown.scss');
 export default class NamespaceDropdown extends Component {
   constructor(props) {
     super(props);

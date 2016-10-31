@@ -14,7 +14,7 @@
  * the License.
 */
 import React, { Component, PropTypes } from 'react';
-require('./KeyValuePairs.less');
+require('./KeyValuePairs.scss');
 import T from 'i18n-react';
 
 class KeyValuePair extends Component {
