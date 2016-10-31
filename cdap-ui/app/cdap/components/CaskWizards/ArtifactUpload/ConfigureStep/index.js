@@ -163,7 +163,7 @@ export default function ConfigureStep() {
           <Col xs="7">
             <ParentArtifactSelect />
           </Col>
-          <i className="fa fa-asterisk text-danger pull-left"/>
+          <i className="fa fa-asterisk text-danger float-xs-left"/>
         </FormGroup>
 
         <FormGroup>
@@ -173,7 +173,7 @@ export default function ConfigureStep() {
           <Col xs="7">
             <InputArtifactName />
           </Col>
-          <i className="fa fa-asterisk text-danger pull-left"/>
+          <i className="fa fa-asterisk text-danger float-xs-left"/>
         </FormGroup>
 
         <FormGroup>
@@ -183,7 +183,7 @@ export default function ConfigureStep() {
           <Col xs="7">
             <TypeSelect />
           </Col>
-          <i className="fa fa-asterisk text-danger pull-left"/>
+          <i className="fa fa-asterisk text-danger float-xs-left"/>
         </FormGroup>
 
         <FormGroup>
@@ -193,7 +193,7 @@ export default function ConfigureStep() {
           <Col xs="7">
             <InputArtifactClassname />
           </Col>
-          <i className="fa fa-asterisk text-danger pull-left"/>
+          <i className="fa fa-asterisk text-danger float-xs-left"/>
         </FormGroup>
 
         <FormGroup>

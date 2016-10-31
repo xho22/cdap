@@ -28,11 +28,11 @@ export default function WizardStepContent(props) {
   return (
     <div className="wizard-step-content-container">
       <div className="step-banner clearfix">
-        <div className="pull-left">
+        <div className="float-xs-left">
           <h4>{title}</h4>
           <p>{description}</p>
         </div>
-        <div className="pull-right progress-counter">
+        <div className="float-xs-right progress-counter">
           {currentStep} / {stepsCount}
         </div>
       </div>

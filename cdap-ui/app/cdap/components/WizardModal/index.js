@@ -30,11 +30,11 @@ export default function WizardModal({children, title, isOpen, toggle, className,
       backdrop={backdrop}
     >
       <ModalHeader>
-        <span className="pull-left">
+        <span className="float-xs-left">
           {title}
         </span>
         <div
-          className="close-section pull-right"
+          className="close-section float-xs-right"
           onClick={toggle}
         >
           <span

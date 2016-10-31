@@ -196,7 +196,7 @@ export default class Wizard extends Component{
                 })
             }
           </ul>
-          <div className="clearfix text-center done-button">
+          <div className="clearfix text-xs-center done-button">
             <div
               className="btn btn-primary"
               onClick={this.props.onClose.bind(null, true)}
@@ -232,7 +232,7 @@ export default class Wizard extends Component{
             currentStep={currentStepIndex(this.props.wizardConfig.steps, matchedStep.id) + 1}
           >
             {matchedStep.content}
-            <div className="text-right wizard-navigation">
+            <div className="text-xs-right wizard-navigation">
               {getNavigationButtons(matchedStep)}
             </div>
           </WizardStepContent>

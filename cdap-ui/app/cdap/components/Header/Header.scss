@@ -45,6 +45,7 @@ $navbar-height: 50px;
     color: white;
     border: 0;
     font-weight: 500;
+    padding: 0;
 
     &.cdap { @include product-navbar-mixins($cdap-orange, $cdap-orange); }
     &.hydrator { @include product-navbar-mixins($hydrator-blue, #43AAFF); }

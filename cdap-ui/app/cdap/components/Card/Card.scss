@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
- 
+
 @import '../../styles/variables.scss';
 
 .cask-card {
@@ -28,8 +28,13 @@
   .card-header {
     display: flex;
     justify-content: center;
+    background-color: transparent;
+    border-bottom: 0;
+    padding: 0;
+
     h3 {
       margin-top: 0;
+      font-size: 22px;
     }
     .fa.fa-times {
       position: absolute;

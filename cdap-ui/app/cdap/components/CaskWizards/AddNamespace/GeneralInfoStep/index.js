@@ -88,7 +88,7 @@ export default function GeneralInfoStep() {
             <Col xs="7">
               <InputNamespaceName />
             </Col>
-            <span className="fa fa-asterisk text-danger pull-left" />
+            <span className="fa fa-asterisk text-danger float-xs-left" />
           </FormGroup>
           <FormGroup>
             <Col xs="3">

@@ -29,7 +29,7 @@ const DragNDropFile = ({filename, onDropHandler}) => {
         activeClassName="file-drag-container"
         className="file-drop-container"
         onDrop={onDropHandler}>
-        <div className="file-metadata-container text-center">
+        <div className="file-metadata-container text-xs-center">
           {
             filename.length ? (<span>Will be uploading {filename}. </span>)
               :

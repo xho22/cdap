@@ -30,7 +30,7 @@ const DragNDropFile = ({file, onDropHandler}) => {
       activeClassName="file-drag-container"
       className="file-drop-container"
       onDrop={onDropHandler}>
-      <div className="file-metadata-container text-center">
+      <div className="file-metadata-container text-xs-center">
         {
           file.name && file.name.length ? (<span>{file.name}</span>)
             :
@@ -96,7 +96,7 @@ export default function UploadStep() {
           <Col xs="7">
             <ArtifactUploader />
           </Col>
-          <i className="fa fa-asterisk text-danger pull-left"/>
+          <i className="fa fa-asterisk text-danger float-xs-left"/>
         </FormGroup>
       </Form>
     </Provider>

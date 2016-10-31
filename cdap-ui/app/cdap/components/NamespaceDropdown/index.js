@@ -92,7 +92,7 @@ export default class NamespaceDropdown extends Component {
             <div className="namespace-text">
               {this.state.currentNamespace}
             </div>
-            <span className="fa fa-angle-down pull-right">
+            <span className="fa fa-angle-down float-xs-right">
             </span>
           </div>
           <DropdownMenu>
@@ -115,8 +115,8 @@ export default class NamespaceDropdown extends Component {
                           className="clearfix namespace-container"
                           onClick={this.selectNamespace.bind(this, item.name)}
                         >
-                          <span className="namespace-name pull-left">{item.name}</span>
-                          <span className="default-ns-section pull-right">
+                          <span className="namespace-name float-xs-left">{item.name}</span>
+                          <span className="default-ns-section float-xs-right">
                             {check}
                             {
                               defaultNamespace !== item.name ?
@@ -144,7 +144,7 @@ export default class NamespaceDropdown extends Component {
               this.state.namespaceList.length > 1 ?
                 (
                   <div
-                    className="namespace-action text-center"
+                    className="namespace-action text-xs-center"
                     onClick={this.showNamespaceWizard.bind(this)}
                   >
                     Manage Namespaces
@@ -153,7 +153,7 @@ export default class NamespaceDropdown extends Component {
               :
                 (
                   <div
-                    className="namespace-action text-center"
+                    className="namespace-action text-xs-center"
                     onClick={this.showNamespaceWizard.bind(this)}
                   >
                     Add Namespace

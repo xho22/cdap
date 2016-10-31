@@ -41,7 +41,7 @@ const mapDispatchToStreamThresholdProps = (dispatch) => {
 };
 let ThresholdTextBox = ({value, onChange}) => {
   return (
-    <FormGroup className="text-center">
+    <FormGroup className="text-xs-center">
       <Input
         value={value}
         type="number"

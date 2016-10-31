@@ -161,7 +161,7 @@ export default class AllTabContents extends Component {
             onChange={this.onSearch.bind(this)}
           />
         */}
-        <div className="body-section text-center">
+        <div className="body-section text-xs-center">
           {error}
           {this.handleBodyRender()}
 

@@ -22,7 +22,7 @@ import Card from '../Card';
 import MyUserStoreApi from '../../api/userstore';
 import T from 'i18n-react';
 
- class SplashScreen extends Component {
+class SplashScreen extends Component {
   constructor(props) {
     super(props);
     this.props = props;
@@ -61,7 +61,7 @@ import T from 'i18n-react';
   }
   render() {
     return (
-      <div className={!this.state.showSplashScreen ? 'hide' : ''}>
+      <div className={!this.state.showSplashScreen ? 'invisible' : ''}>
         <div className="splash-screen-backdrop"></div>
         <div className="splash-screen">
           <Card
@@ -70,7 +70,7 @@ import T from 'i18n-react';
             title={T.translate('features.SplashScreen.title')}
             onClose={this.onClose.bind(this)}
           >
-            <div className="text-center">
+            <div className="text-xs-center">
               <span className="fa fa-5x icon-fist"></span>
               <div className="version-label">
                 {T.translate('features.SplashScreen.version-label')}
@@ -88,7 +88,7 @@ import T from 'i18n-react';
                 <div className="btn-buffer">
                 </div>
                 <div
-                  className={this.state.showRegistration ? 'btn btn-default' : 'hide'}
+                  className={this.state.showRegistration ? 'btn btn-default' : 'invisible'}
                   onClick={this.props.openVideo}
                 >
                   <span className="fa fa-youtube-play btn-icon"></span>{T.translate('features.SplashScreen.buttons.introduction')}

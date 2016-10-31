@@ -284,13 +284,13 @@ class Home extends Component {
     this.updateQueryString();
 
     const empty = (
-      <h3 className="text-center empty-message">
+      <h3 className="text-xs-center empty-message">
         {T.translate('features.Home.emptyMessage')}
       </h3>
     );
 
     const loading = (
-      <h3 className="text-center">
+      <h3 className="text-xs-center">
         <span className="fa fa-spinner fa-spin fa-2x loading-spinner"></span>
       </h3>
     );

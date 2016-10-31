@@ -63,10 +63,10 @@ export default class HydratorPipeline extends Component {
         size="lg"
       >
         <ModalHeader>
-          <span className="pull-left">
+          <span className="float-xs-left">
             {T.translate('features.Wizard.HydratorPipeline.title')}
           </span>
-          <div className="close-section pull-right">
+          <div className="close-section float-xs-right">
             <span
               className="fa fa-times"
               onClick={this.closeHandler.bind(this)}

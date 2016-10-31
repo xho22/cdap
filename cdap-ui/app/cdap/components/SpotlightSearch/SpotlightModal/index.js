@@ -126,7 +126,7 @@ export default class SpotlightModal extends Component {
     let pageArray = Array.from(Array(numPages).keys()).map( n => n + 1 );
 
     return (
-      <div className="results-pagination text-center">
+      <div className="results-pagination text-xs-center">
         <Pagination>
           <PaginationItem disabled={this.state.currentPage === 1}>
             <PaginationLink
@@ -173,7 +173,7 @@ export default class SpotlightModal extends Component {
         backdrop={true}
       >
         <ModalHeader>
-          <span className="pull-left">
+          <span className="float-xs-left">
             {
 
               T.translate('features.SpotlightSearch.SpotlightModal.headerSearchResults', {
@@ -182,7 +182,7 @@ export default class SpotlightModal extends Component {
             }
           </span>
           <div
-            className="close-section pull-right"
+            className="close-section float-xs-right"
           >
             <span className="search-results-total">
               {
@@ -226,7 +226,7 @@ export default class SpotlightModal extends Component {
                     </Col>
 
                     <Col xs="6">
-                      <div className="entity-tags-container text-right">
+                      <div className="entity-tags-container text-xs-right">
                         {
                           entity.metadata.metadata.SYSTEM.tags.map((tag) => {
                             return (

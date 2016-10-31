@@ -103,7 +103,7 @@ export default function GeneralInfoStep() {
           <Col xs="7">
             <InputStreamName />
           </Col>
-          <i className="fa fa-asterisk text-danger pull-left"/>
+          <i className="fa fa-asterisk text-danger float-xs-left"/>
         </FormGroup>
         <FormGroup>
           <Col xs="3">

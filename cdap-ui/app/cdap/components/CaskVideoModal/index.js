@@ -41,7 +41,7 @@ export default class CaskVideoModal extends Component {
         className="cask-video-modal"
       >
         <ModalHeader>
-          <span className="pull-left">
+          <span className="float-xs-left">
           </span>
         </ModalHeader>
         <ModalBody>

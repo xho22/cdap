@@ -59,7 +59,7 @@ export default class HomeHeader extends Component {
             <span>{T.translate('features.Home.Header.sort')}</span> :
             <span>{this.props.activeSort.displayName}</span>
           }
-          <span className="fa fa-caret-down pull-right"></span>
+          <span className="fa fa-caret-down float-xs-right"></span>
         </DropdownToggle>
         <DropdownMenu>
           {
@@ -72,7 +72,7 @@ export default class HomeHeader extends Component {
                   {option.displayName}
                   {
                     this.props.activeSort.fullSort === option.fullSort ?
-                    <span className="fa fa-check pull-right"></span> :
+                    <span className="fa fa-check float-xs-right"></span> :
                     null
                   }
                 </DropdownItem>
@@ -90,7 +90,7 @@ export default class HomeHeader extends Component {
       >
         <DropdownToggle tag='div'>
           <span>{T.translate('features.Home.Header.filters')}</span>
-          <span className="fa fa-filter pull-right"></span>
+          <span className="fa fa-filter float-xs-right"></span>
         </DropdownToggle>
         <DropdownMenu onClick={e => e.stopPropagation()}>
           {
@@ -141,7 +141,7 @@ export default class HomeHeader extends Component {
         <div className="filter">
           {filterDropdown}
         </div>
-        <div className="view-selector pull-right">
+        <div className="view-selector float-xs-right">
           <span className="fa fa-th active"></span>
           <span className="fa fa-list"></span>
         </div>
