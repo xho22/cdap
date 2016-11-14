@@ -59,7 +59,7 @@ public class TrackedTransform<IN, OUT> implements Transformation<IN, OUT>, Destr
       metrics.count(metricInName, 1);
     }
     if (dataTracer.isEnabled()) {
-      dataTracer.info("", input);
+      dataTracer.info("input.records", input);
     }
     transform.transform(input, metricOutName == null ? emitter :
       new TrackedEmitter<>(emitter, metrics, metricOutName, dataTracer));
