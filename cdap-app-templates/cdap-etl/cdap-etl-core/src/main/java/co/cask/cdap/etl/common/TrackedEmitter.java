@@ -16,6 +16,7 @@
 
 package co.cask.cdap.etl.common;
 
+import co.cask.cdap.api.preview.DataTracer;
 import co.cask.cdap.etl.api.Emitter;
 import co.cask.cdap.etl.api.InvalidEntry;
 import co.cask.cdap.etl.api.StageMetrics;
@@ -29,22 +30,30 @@ public class TrackedEmitter<T> implements Emitter<T> {
   private final Emitter<T> delegate;
   private final StageMetrics stageMetrics;
   private final String emitMetricName;
+  private final DataTracer dataTracer;
 
-  public TrackedEmitter(Emitter<T> delegate, StageMetrics stageMetrics, String emitMetricName) {
+  public TrackedEmitter(Emitter<T> delegate, StageMetrics stageMetrics, String emitMetricName, DataTracer dataTracer) {
     this.delegate = delegate;
     this.stageMetrics = stageMetrics;
     this.emitMetricName = emitMetricName;
+    this.dataTracer = dataTracer;
   }
 
   @Override
   public void emit(T value) {
     delegate.emit(value);
     stageMetrics.count(emitMetricName, 1);
+    if (dataTracer.isEnabled()) {
+      dataTracer.info("output.records", value);
+    }
   }
 
   @Override
   public void emitError(InvalidEntry<T> value) {
     delegate.emitError(value);
     stageMetrics.count("records.error", 1);
+    if (dataTracer.isEnabled()) {
+      dataTracer.info("error.records", value);
+    }
   }
 }
