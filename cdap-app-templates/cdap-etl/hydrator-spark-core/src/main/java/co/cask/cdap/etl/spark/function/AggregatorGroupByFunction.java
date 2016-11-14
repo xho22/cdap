@@ -49,7 +49,8 @@ public class AggregatorGroupByFunction<GROUP_KEY, GROUP_VAL>
       groupByFunction = new TrackedTransform<>(new GroupByTransform<>(aggregator),
                                                pluginFunctionContext.createStageMetrics(),
                                                TrackedTransform.RECORDS_IN,
-                                               null, pluginFunctionContext.getDataTracer());
+                                               null, pluginFunctionContext.getDataTracer(),
+                                               TrackedTransform.RECORDS_IN);
       emitter = new DefaultEmitter<>();
     }
     emitter.reset();

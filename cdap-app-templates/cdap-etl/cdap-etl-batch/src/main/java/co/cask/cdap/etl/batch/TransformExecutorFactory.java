@@ -115,7 +115,8 @@ public abstract class TransformExecutorFactory<T> {
   protected static <IN, OUT> TrackedTransform<IN, OUT> getTrackedEmitKeyStep(Transformation<IN, OUT> transform,
                                                                              StageMetrics stageMetrics,
                                                                              DataTracer dataTracer) {
-    return new TrackedTransform<>(transform, stageMetrics, TrackedTransform.RECORDS_IN, null, dataTracer);
+    return new TrackedTransform<>(transform, stageMetrics, TrackedTransform.RECORDS_IN, null, dataTracer,
+                                  TrackedTransform.RECORDS_IN);
   }
 
   protected static <IN, OUT> TrackedTransform<IN, OUT> getTrackedAggregateStep(Transformation<IN, OUT> transform,
@@ -123,12 +124,12 @@ public abstract class TransformExecutorFactory<T> {
                                                                                DataTracer dataTracer) {
     // 'aggregator.groups' is the number of groups output by the aggregator
     return new TrackedTransform<>(transform, stageMetrics, "aggregator.groups", TrackedTransform.RECORDS_OUT,
-                                  dataTracer);
+                                  dataTracer, null);
   }
 
   protected static <IN, OUT> TrackedTransform<IN, OUT> getTrackedMergeStep(Transformation<IN, OUT> transform,
                                                                            StageMetrics stageMetrics,
                                                                            DataTracer dataTracer) {
-    return new TrackedTransform<>(transform, stageMetrics, null, TrackedTransform.RECORDS_OUT, dataTracer);
+    return new TrackedTransform<>(transform, stageMetrics, null, TrackedTransform.RECORDS_OUT, dataTracer, null);
   }
 }

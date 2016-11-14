@@ -262,7 +262,8 @@ public class ETLWorker extends AbstractWorker {
       TrackedTransform trackedTransform = new TrackedTransform(identityTransformation,
                                                                new DefaultStageMetrics(metrics, sinkName),
                                                                TrackedTransform.RECORDS_IN,
-                                                               null, context.getDataTracer(sinkName));
+                                                               null, context.getDataTracer(sinkName),
+                                                               TrackedTransform.RECORDS_IN);
       transformationMap.put(sinkInfo.getName(), new TransformDetail(trackedTransform, new HashSet<String>()));
       sinks.put(sinkInfo.getName(), sink);
     }
