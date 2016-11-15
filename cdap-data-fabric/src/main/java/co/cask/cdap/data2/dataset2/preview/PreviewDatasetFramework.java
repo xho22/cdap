@@ -263,10 +263,9 @@ public class PreviewDatasetFramework implements DatasetFramework {
     Principal principal = authenticationContext.getPrincipal();
 
     try {
-      // For system, skip authorization and lineage (user program shouldn't allow to access system dataset CDAP-6649)
-      // For non-system dataset, always perform authorization and lineage.
       AuthorizationEnforcer enforcer;
 
+      // only for the datasets from the real space enforce the authorization.
       if (DatasetsUtil.isUserDataset(datasetInstanceId) && datasetNames.contains(datasetInstanceId.getDataset())) {
         enforcer = authorizationEnforcer;
       } else {
