@@ -36,6 +36,8 @@ import java.util.Map;
  */
 public class TransformExecutorTest {
 
+  private final DataTracerFactory dataTracerFactory = new NoopDataTracerFactory();
+
   @Test
   public void testEmptyTransforms() throws Exception {
     Map<String, TransformDetail> transformationMap = new HashMap<>();
@@ -58,7 +60,6 @@ public class TransformExecutorTest {
   @Test
   public void testTransforms() throws Exception {
     MockMetrics mockMetrics = new MockMetrics();
-    DataTracerFactory dataTracerFactory = new NoopDataTracerFactory();
     Map<String, TransformDetail> transformationMap = new HashMap<>();
 
     transformationMap.put("transform1",
@@ -146,7 +147,6 @@ public class TransformExecutorTest {
   @Test
   public void testTransformsWithMerge() throws Exception {
     MockMetrics mockMetrics = new MockMetrics();
-    DataTracerFactory dataTracerFactory = new NoopDataTracerFactory();
     Map<String, TransformDetail> transformationMap = new HashMap<>();
 
     transformationMap.put("conversion",
@@ -224,7 +224,6 @@ public class TransformExecutorTest {
   @Test
   public void testTransformsWithMergeWithMultipleStarts() throws Exception {
     MockMetrics mockMetrics = new MockMetrics();
-    DataTracerFactory dataTracerFactory = new NoopDataTracerFactory();
     Map<String, TransformDetail> transformationMap = new HashMap<>();
 
 

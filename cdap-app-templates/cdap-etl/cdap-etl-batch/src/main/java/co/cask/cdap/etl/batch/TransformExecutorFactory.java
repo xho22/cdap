@@ -65,7 +65,6 @@ public abstract class TransformExecutorFactory<T> {
 
   protected abstract BatchRuntimeContext createRuntimeContext(String stageName);
 
-  @SuppressWarnings("unchecked")
   protected abstract TrackedTransform getTransformation(String pluginType, String stageName)
     throws Exception;
 
