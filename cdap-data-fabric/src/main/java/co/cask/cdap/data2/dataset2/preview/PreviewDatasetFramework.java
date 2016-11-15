@@ -22,8 +22,11 @@ import co.cask.cdap.api.dataset.DatasetManagementException;
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.DatasetSpecification;
 import co.cask.cdap.api.dataset.module.DatasetModule;
+import co.cask.cdap.data2.datafabric.dataset.DatasetsUtil;
+import co.cask.cdap.data2.datafabric.dataset.type.ConstantClassLoaderProvider;
 import co.cask.cdap.data2.datafabric.dataset.type.DatasetClassLoaderProvider;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
+import co.cask.cdap.data2.dataset2.DefaultDatasetRuntimeContext;
 import co.cask.cdap.data2.metadata.lineage.AccessType;
 import co.cask.cdap.proto.DatasetSpecificationSummary;
 import co.cask.cdap.proto.DatasetTypeMeta;
@@ -32,6 +35,10 @@ import co.cask.cdap.proto.id.DatasetModuleId;
 import co.cask.cdap.proto.id.DatasetTypeId;
 import co.cask.cdap.proto.id.EntityId;
 import co.cask.cdap.proto.id.NamespaceId;
+import co.cask.cdap.proto.security.Principal;
+import co.cask.cdap.security.spi.authentication.AuthenticationContext;
+import co.cask.cdap.security.spi.authorization.AuthorizationEnforcer;
+import co.cask.cdap.security.spi.authorization.NoOpAuthorizer;
 import org.apache.twill.filesystem.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +47,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 
 /**
@@ -73,10 +81,25 @@ public class PreviewDatasetFramework implements DatasetFramework {
     public void close() throws IOException {
     }
   };
+  private static final AuthorizationEnforcer NOOP_ENFORCER = new NoOpAuthorizer();
+  private static final DefaultDatasetRuntimeContext.DatasetAccessRecorder NOOP_DATASET_ACCESS_RECORDER =
+    new DefaultDatasetRuntimeContext.DatasetAccessRecorder() {
+      @Override
+      public void recordLineage(AccessType accessType) {
+        // no-op
+      }
+
+      @Override
+      public void emitAudit(AccessType accessType) {
+        // no-op
+      }
+    };
 
   private final DatasetFramework localDatasetFramework;
   private final DatasetFramework actualDatasetFramework;
   private final Set<String> datasetNames;
+  private final AuthenticationContext authenticationContext;
+  private final AuthorizationEnforcer authorizationEnforcer;
 
   /**
    * Create instance of the {@link PreviewDatasetFramework}.
@@ -84,10 +107,14 @@ public class PreviewDatasetFramework implements DatasetFramework {
    * @param actual the dataset framework instance in the real space
    * @param datasetNames list of dataset names which need to be accessed for read only purpose from the real space
    */
-  public PreviewDatasetFramework(DatasetFramework local, DatasetFramework actual, Set<String> datasetNames) {
+  public PreviewDatasetFramework(DatasetFramework local, DatasetFramework actual, Set<String> datasetNames,
+                                 AuthenticationContext authenticationContext,
+                                 AuthorizationEnforcer authorizationEnforcer) {
     this.localDatasetFramework = local;
     this.actualDatasetFramework = actual;
     this.datasetNames = datasetNames;
+    this.authenticationContext = authenticationContext;
+    this.authorizationEnforcer = authorizationEnforcer;
   }
 
   @Override
@@ -220,25 +247,49 @@ public class PreviewDatasetFramework implements DatasetFramework {
   public <T extends Dataset> T getDataset(DatasetId datasetInstanceId, @Nullable Map<String, String> arguments,
                                           @Nullable ClassLoader classLoader)
     throws DatasetManagementException, IOException {
-    if (datasetNames.contains(datasetInstanceId.getDataset())) {
-      return actualDatasetFramework.getDataset(datasetInstanceId, arguments, classLoader);
-    }
-    return localDatasetFramework.getDataset(datasetInstanceId, arguments, classLoader);
+
+    return getDataset(datasetInstanceId, arguments, classLoader, new ConstantClassLoaderProvider(classLoader), null,
+                      AccessType.UNKNOWN);
   }
 
   @Nullable
   @Override
-  public <T extends Dataset> T getDataset(DatasetId datasetInstanceId, @Nullable Map<String, String> arguments,
-                                          @Nullable ClassLoader classLoader,
-                                          DatasetClassLoaderProvider classLoaderProvider,
-                                          @Nullable Iterable<? extends EntityId> owners,
-                                          AccessType accessType) throws DatasetManagementException, IOException {
-    if (datasetNames.contains(datasetInstanceId.getDataset())) {
-      return actualDatasetFramework.getDataset(datasetInstanceId, arguments, classLoader, classLoaderProvider,
-                                               owners, accessType);
+  public <T extends Dataset> T getDataset(final DatasetId datasetInstanceId,
+                                          @Nullable final Map<String, String> arguments,
+                                          @Nullable final ClassLoader classLoader,
+                                          final DatasetClassLoaderProvider classLoaderProvider,
+                                          @Nullable final Iterable<? extends EntityId> owners,
+                                          final AccessType accessType) throws DatasetManagementException, IOException {
+    Principal principal = authenticationContext.getPrincipal();
+
+    try {
+      // For system, skip authorization and lineage (user program shouldn't allow to access system dataset CDAP-6649)
+      // For non-system dataset, always perform authorization and lineage.
+      AuthorizationEnforcer enforcer;
+
+      if (DatasetsUtil.isUserDataset(datasetInstanceId) && datasetNames.contains(datasetInstanceId.getDataset())) {
+        enforcer = authorizationEnforcer;
+      } else {
+        enforcer = NOOP_ENFORCER;
+      }
+
+      return DefaultDatasetRuntimeContext.execute(enforcer, NOOP_DATASET_ACCESS_RECORDER, principal, datasetInstanceId,
+                                                  null, new Callable<T>() {
+          @Override
+          public T call() throws Exception {
+            if (datasetNames.contains(datasetInstanceId.getDataset())) {
+              return actualDatasetFramework.getDataset(datasetInstanceId, arguments, classLoader, classLoaderProvider,
+                                                       owners, accessType);
+            }
+            return localDatasetFramework.getDataset(datasetInstanceId, arguments, classLoader, classLoaderProvider,
+                                                    owners, accessType);
+          }
+        });
+    } catch (IOException | DatasetManagementException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new DatasetManagementException("Failed to create dataset instance: " + datasetInstanceId, e);
     }
-    return localDatasetFramework.getDataset(datasetInstanceId, arguments, classLoader, classLoaderProvider, owners,
-                                            accessType);
   }
 
   @Override

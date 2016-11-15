@@ -22,6 +22,7 @@ import co.cask.cdap.app.guice.AppFabricServiceRuntimeModule;
 import co.cask.cdap.app.guice.AuthorizationModule;
 import co.cask.cdap.app.guice.ProgramRunnerRuntimeModule;
 import co.cask.cdap.app.guice.ServiceStoreModules;
+import co.cask.cdap.app.preview.PreviewServerModule;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.conf.SConfiguration;
@@ -48,7 +49,6 @@ import co.cask.cdap.metrics.guice.MetricsClientRuntimeModule;
 import co.cask.cdap.metrics.guice.MetricsHandlerModule;
 import co.cask.cdap.notifications.feeds.guice.NotificationFeedServiceRuntimeModule;
 import co.cask.cdap.notifications.guice.NotificationServiceRuntimeModule;
-import co.cask.cdap.proto.Id;
 import co.cask.cdap.proto.ScheduledRuntime;
 import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.proto.id.ProgramId;
@@ -131,6 +131,7 @@ public final class AppFabricTestModule extends AbstractModule {
     // we want to use RemotePrivilegesFetcher in this module, since app fabric service is started
     install(new AuthorizationEnforcementModule().getStandaloneModules());
     install(new SecureStoreModules().getInMemoryModules());
+    install(new PreviewServerModule());
   }
 
   private Scheduler createNoopScheduler() {
