@@ -17,6 +17,7 @@ package co.cask.cdap.internal.app.services;
 
 import co.cask.cdap.app.preview.PreviewManager;
 import co.cask.cdap.gateway.handlers.preview.PreviewHttpHandler;
+import co.cask.cdap.internal.app.preview.PreviewRuntimeService;
 import co.cask.cdap.internal.app.services.http.AppFabricTestBase;
 import co.cask.cdap.proto.id.ApplicationId;
 import com.google.inject.Injector;
@@ -48,5 +49,7 @@ public class PreviewHttpHandlerTest extends AppFabricTestBase {
 
     Assert.assertNotEquals(previewInjector.getInstance(PreviewManager.class),
                            anotherPreviewInjector.getInstance(PreviewManager.class));
+
+    Assert.assertNotNull(anotherPreviewInjector.getInstance(PreviewRuntimeService.class));
   }
 }
