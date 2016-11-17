@@ -50,9 +50,11 @@ import co.cask.cdap.data2.dataset2.MultiThreadDatasetCache;
 import co.cask.cdap.data2.dataset2.SingleThreadDatasetCache;
 import co.cask.cdap.data2.metadata.lineage.AccessType;
 import co.cask.cdap.data2.transaction.Transactions;
+import co.cask.cdap.internal.app.preview.DataTracerFactoryProvider;
 import co.cask.cdap.internal.app.preview.NoopDataTracerFactory;
 import co.cask.cdap.internal.app.program.ProgramTypeMetricTag;
 import co.cask.cdap.internal.app.runtime.plugin.PluginInstantiator;
+import co.cask.cdap.proto.id.ApplicationId;
 import co.cask.cdap.proto.id.EntityId;
 import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.proto.id.ProgramId;
@@ -96,7 +98,12 @@ public abstract class AbstractContext extends AbstractServiceDiscoverer
   private final int defaultTxTimeout;
   protected final DynamicDatasetCache datasetCache;
 
-  private DataTracerFactory dataTracerFactory = new NoopDataTracerFactory();
+  private DataTracerFactory dataTracerFactory = new DataTracerFactory() {
+    @Override
+    public DataTracer getDataTracer(ApplicationId applicationId, String tracerName) {
+      return DataTracerFactoryProvider.get(applicationId).getDataTracer(applicationId, tracerName);
+    }
+  };
 
   /**
    * Constructs a context without plugin support.

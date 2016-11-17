@@ -20,6 +20,7 @@ import co.cask.cdap.api.security.store.SecureStore;
 import co.cask.cdap.app.guice.ProgramRunnerRuntimeModule;
 import co.cask.cdap.app.preview.PreviewManager;
 import co.cask.cdap.app.preview.PreviewModule;
+import co.cask.cdap.app.store.preview.PreviewStore;
 import co.cask.cdap.common.BadRequestException;
 import co.cask.cdap.common.NotFoundException;
 import co.cask.cdap.common.app.RunIds;
@@ -46,6 +47,8 @@ import co.cask.cdap.gateway.handlers.meta.RemoteSystemOperationsServiceModule;
 import co.cask.cdap.gateway.handlers.util.AbstractAppFabricHttpHandler;
 import co.cask.cdap.internal.app.namespace.LocalStorageProviderNamespaceAdmin;
 import co.cask.cdap.internal.app.namespace.StorageProviderNamespaceAdmin;
+import co.cask.cdap.internal.app.preview.DataTracerFactoryProvider;
+import co.cask.cdap.internal.app.preview.DefaultDataTracerFactory;
 import co.cask.cdap.internal.app.preview.PreviewRuntimeService;
 import co.cask.cdap.internal.app.runtime.artifact.ArtifactRepository;
 import co.cask.cdap.internal.app.runtime.artifact.ArtifactStore;
@@ -211,6 +214,8 @@ public class PreviewHttpHandler extends AbstractAppFabricHttpHandler {
     service.startAndWait();
 
     PreviewManager manager = injector.getInstance(PreviewManager.class);
+    PreviewStore previewStore = injector.getInstance(PreviewStore.class);
+    DataTracerFactoryProvider.setDataTracerFactory(application, new DefaultDataTracerFactory(previewStore));
     manager.start(application, appRequest);
     responder.sendString(HttpResponseStatus.OK, GSON.toJson(application));
   }

@@ -29,7 +29,6 @@ import co.cask.cdap.internal.app.deploy.pipeline.ApplicationWithPrograms;
 import co.cask.cdap.internal.app.namespace.DefaultNamespaceAdmin;
 import co.cask.cdap.internal.app.namespace.DefaultNamespaceResourceDeleter;
 import co.cask.cdap.internal.app.namespace.NamespaceResourceDeleter;
-import co.cask.cdap.internal.app.preview.DefaultDataTracerFactory;
 import co.cask.cdap.internal.app.preview.DefaultPreviewManager;
 import co.cask.cdap.internal.app.preview.PreviewRuntimeService;
 import co.cask.cdap.internal.app.runtime.schedule.NoopScheduler;
@@ -86,12 +85,10 @@ public class PreviewModule extends PrivateModule {
     expose(PreviewManager.class);
 
     bind(PreviewStore.class).to(DefaultPreviewStore.class).in(Scopes.SINGLETON);
+    expose(PreviewStore.class);
 
     bind(Scheduler.class).to(NoopScheduler.class);
     bind(PreviewRuntimeService.class).in(Scopes.SINGLETON);
     expose(PreviewRuntimeService.class);
-
-    bind(DataTracerFactory.class).to(DefaultDataTracerFactory.class);
-    expose(DataTracerFactory.class);
   }
 }
