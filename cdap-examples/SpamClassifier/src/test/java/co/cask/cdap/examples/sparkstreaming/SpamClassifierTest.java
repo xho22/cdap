@@ -39,6 +39,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -56,6 +58,7 @@ import java.util.concurrent.TimeUnit;
  * Test for {@link SpamClassifier}
  */
 public class SpamClassifierTest extends TestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(SpamClassifierTest.class);
 
   @ClassRule
   public static final TestConfiguration CONFIG = new TestConfiguration(Constants.Explore.EXPLORE_ENABLED, false);
@@ -136,8 +139,15 @@ public class SpamClassifierTest extends TestBase {
     URL url = new URL(serviceManager.getServiceURL(15, TimeUnit.SECONDS),
                       SpamClassifier.SpamClassifierServiceHandler.CLASSIFICATION_PATH + "/" + messageId);
     HttpResponse response = HttpRequests.execute(HttpRequest.get(url).build());
-    return (HttpURLConnection.HTTP_OK == response.getResponseCode() &&
-      expected.equalsIgnoreCase(response.getResponseBodyAsString()));
+    if (HttpURLConnection.HTTP_OK == response.getResponseCode() &&
+      expected.equalsIgnoreCase(response.getResponseBodyAsString())) {
+      return true;
+    }
+    // TODO: For debugging only. Remove after CDAP-7469 is fixed.
+    LOG.info("Classification test failed. Response code: {}, Message Id: {}, expected response: {}, " +
+               "actual response: {}", response.getResponseCode(), messageId, expected,
+             response.getResponseBodyAsString());
+    return false;
   }
 
   private void publishKafkaMessages() {
