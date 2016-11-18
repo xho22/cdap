@@ -36,9 +36,12 @@ import org.apache.twill.kafka.client.KafkaClientService;
 import org.apache.twill.kafka.client.KafkaPublisher;
 import org.apache.twill.zookeeper.ZKClientService;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -50,12 +53,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Test for {@link SpamClassifier}
  */
 public class SpamClassifierTest extends TestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(SpamClassifierTest.class);
 
   @ClassRule
   public static final TestConfiguration CONFIG = new TestConfiguration(Constants.Explore.EXPLORE_ENABLED, false);
@@ -136,11 +142,22 @@ public class SpamClassifierTest extends TestBase {
     URL url = new URL(serviceManager.getServiceURL(15, TimeUnit.SECONDS),
                       SpamClassifier.SpamClassifierServiceHandler.CLASSIFICATION_PATH + "/" + messageId);
     HttpResponse response = HttpRequests.execute(HttpRequest.get(url).build());
-    return (HttpURLConnection.HTTP_OK == response.getResponseCode() &&
-      expected.equalsIgnoreCase(response.getResponseBodyAsString()));
+    if (HttpURLConnection.HTTP_OK == response.getResponseCode() &&
+      expected.equalsIgnoreCase(response.getResponseBodyAsString())) {
+      return true;
+    }
+    // TODO: For debugging only. Remove after CDAP-7469 is fixed.
+    LOG.info("Classification test failed. Response code: {}, Message Id: {}, expected response: {}, " +
+               "actual response: {}", response.getResponseCode(), messageId, expected,
+             response.getResponseBodyAsString());
+    return false;
   }
 
-  private void publishKafkaMessages() {
+<<<<<<< Updated upstream
+  private void publishKafkaMessages() throws InterruptedException, ExecutionException, TimeoutException {
+=======
+  private void publishKafkaMessages() throws ExecutionException, InterruptedException {
+>>>>>>> Stashed changes
     KafkaPublisher publisher = kafkaClient.getPublisher(KafkaPublisher.Ack.ALL_RECEIVED, Compression.NONE);
     KafkaPublisher.Preparer preparer = publisher.prepare(KAFKA_TOPIC);
 
@@ -148,7 +165,11 @@ public class SpamClassifierTest extends TestBase {
                                          "offers pls reply 2 this text with your valid name, house no and postcode"),
                  "1"); // spam
     preparer.add(Charsets.UTF_8.encode("2:I will call you later"), "2"); // ham
-    preparer.send();
+<<<<<<< Updated upstream
+    Assert.assertEquals(2, preparer.send().get(60, TimeUnit.SECONDS).intValue());
+=======
+    Assert.assertEquals(2, preparer.send().get().intValue());
+>>>>>>> Stashed changes
   }
 
   private void ingestTrainingData() throws IOException {
