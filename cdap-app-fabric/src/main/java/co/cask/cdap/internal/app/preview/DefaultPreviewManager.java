@@ -45,6 +45,7 @@ import org.apache.twill.common.Threads;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -100,7 +101,9 @@ public class DefaultPreviewManager implements PreviewManager {
     ProgramId programId = getProgramIdFromRequest(preview, request);
     Map<String, String> sysArgs = propertiesResolver.getSystemProperties(programId.toId());
     Map<String, String> userArgs = propertiesResolver.getUserProperties(programId.toId());
-    ProgramRuntimeService.RuntimeInfo runtimeInfo = programLifecycleService.start(programId, sysArgs, userArgs, false);
+    ProgramRuntimeService.RuntimeInfo runtimeInfo = programLifecycleService.start(programId,
+                                                                                  new HashMap<String, String>(),
+                                                                                  new HashMap<String, String>(), false);
 
     runtimeInfo.getController().addListener(new AbstractListener() {
       @Override
