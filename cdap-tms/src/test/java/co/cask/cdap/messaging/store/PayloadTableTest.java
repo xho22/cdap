@@ -131,8 +131,7 @@ public abstract class PayloadTableTest {
     }
   }
 
-  // Private class for publishing messages
-  private static class TestPayloadEntry implements PayloadTable.Entry {
+  private class TestPayloadEntry implements PayloadTable.Entry {
     private final TopicId topicId;
     private final int generation;
     private final byte[] payload;

@@ -21,7 +21,6 @@ import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.messaging.store.MetadataTable;
 import co.cask.cdap.messaging.store.MetadataTableTest;
 import co.cask.cdap.messaging.store.TableFactory;
-import co.cask.cdap.proto.id.NamespaceId;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.rules.TemporaryFolder;
@@ -47,6 +46,6 @@ public class LevelDBMetadataTableTest extends MetadataTableTest {
 
   @Override
   protected MetadataTable createMetadataTable() throws Exception {
-    return tableFactory.createMetadataTable(NamespaceId.CDAP, "metadata");
+    return tableFactory.createMetadataTable("metadata");
   }
 }

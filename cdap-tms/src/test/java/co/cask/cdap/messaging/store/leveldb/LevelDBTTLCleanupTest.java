@@ -19,18 +19,21 @@ package co.cask.cdap.messaging.store.leveldb;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.messaging.store.MessageTable;
-import co.cask.cdap.messaging.store.MessageTableTest;
+import co.cask.cdap.messaging.store.MetadataTable;
+import co.cask.cdap.messaging.store.PayloadTable;
+import co.cask.cdap.messaging.store.TTLCleanupTest;
 import co.cask.cdap.messaging.store.TableFactory;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Tests for {@link LevelDBMessageTable}.
+ * Tests for TTL Cleanup logic in LevelDB.
  */
-public class LevelDBMessageTableTest extends MessageTableTest {
+public class LevelDBTTLCleanupTest extends TTLCleanupTest {
 
   @ClassRule
   public static TemporaryFolder tmpFolder = new TemporaryFolder();
@@ -40,8 +43,25 @@ public class LevelDBMessageTableTest extends MessageTableTest {
   @BeforeClass
   public static void init() throws IOException {
     CConfiguration cConf = CConfiguration.create();
+    cConf.set(Constants.MessagingSystem.LOCAL_TTL_CLEANUP_FREQUENCY, Long.toString(1));
     cConf.set(Constants.CFG_LOCAL_DATA_DIR, tmpFolder.newFolder().getAbsolutePath());
     tableFactory = new LevelDBTableFactory(cConf);
+  }
+
+  @Override
+  protected void forceFlushAndCompact(Table table) throws Exception {
+    // since we have a periodic thread doing the clean up, we don't/can't do much here.
+    TimeUnit.SECONDS.sleep(1);
+  }
+
+  @Override
+  protected MetadataTable getMetadataTable() throws Exception {
+    return tableFactory.createMetadataTable("metadata");
+  }
+
+  @Override
+  protected PayloadTable getPayloadTable() throws Exception {
+    return tableFactory.createPayloadTable("payload");
   }
 
   @Override

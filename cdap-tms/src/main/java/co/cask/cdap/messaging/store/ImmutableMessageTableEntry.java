@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 /**
  * An immutable implementation of {@link MessageTable.Entry}.
  */
-final class ImmutableMessageTableEntry implements MessageTable.Entry {
+public final class ImmutableMessageTableEntry implements MessageTable.Entry {
   private final TopicId topicId;
   private final int generation;
   private final boolean transactional;
@@ -34,10 +34,11 @@ final class ImmutableMessageTableEntry implements MessageTable.Entry {
   private final long publishTimestamp;
   private final short sequenceId;
 
-  ImmutableMessageTableEntry(byte[] row, @Nullable byte[] payload, @Nullable byte[] txPtr) {
+  public ImmutableMessageTableEntry(byte[] row, @Nullable byte[] payload, @Nullable byte[] txPtr) {
+    int topicLength = MessagingUtils.getTopicLengthMessageEntry(row.length);
     this.payload = payload;
-    this.publishTimestamp = Bytes.toLong(row, row.length - Bytes.SIZEOF_SHORT - Bytes.SIZEOF_LONG);
-    this.sequenceId = Bytes.toShort(row, row.length - Bytes.SIZEOF_SHORT);
+    this.publishTimestamp = Bytes.toLong(row, topicLength);
+    this.sequenceId = Bytes.toShort(row, topicLength + Bytes.SIZEOF_LONG);
     this.transactional = (txPtr != null);
     // since we mark tx as negative when tx is rolled back, we return the absolute value of tx
     this.transactionWritePointer = txPtr == null ? -1 : Math.abs(Bytes.toLong(txPtr));
