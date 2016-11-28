@@ -14,29 +14,45 @@
  * the License.
  */
 
-package co.cask.cdap.operations.hdfs;
+package co.cask.cdap.operations.cdap;
 
-import co.cask.cdap.operations.AbstractOperationalStats;
 import co.cask.cdap.operations.OperationalStats;
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.hadoop.conf.Configuration;
+
+import java.io.IOException;
 
 /**
- * Base class for {@link OperationalStats} for HDFS
+ * {@link OperationalStats} for CDAP.
  */
-public abstract class AbstractHDFSStats extends AbstractOperationalStats {
-  @VisibleForTesting
-  static final String SERVICE_NAME = "HDFS";
+@SuppressWarnings("unused")
+public class CDAPServices extends AbstractCDAPStats implements CDAPServicesMXBean {
 
-  protected final Configuration conf;
-
-  @VisibleForTesting
-  AbstractHDFSStats(Configuration conf) {
-    this.conf = conf;
+  @Override
+  public String getStatType() {
+    return "services";
   }
 
   @Override
-  public String getServiceName() {
-    return SERVICE_NAME;
+  public int getMasters() {
+    return 1;
+  }
+
+  @Override
+  public int getAuthServers() {
+    return 1;
+  }
+
+  @Override
+  public int getRouters() {
+    return 1;
+  }
+
+  @Override
+  public int getKafkaServers() {
+    return 1;
+  }
+
+  @Override
+  public void collect() throws IOException {
+
   }
 }

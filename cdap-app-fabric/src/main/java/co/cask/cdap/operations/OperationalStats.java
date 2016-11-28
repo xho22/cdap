@@ -16,6 +16,8 @@
 
 package co.cask.cdap.operations;
 
+import com.google.inject.Injector;
+
 import java.io.IOException;
 import javax.management.MBeanServer;
 import javax.management.MXBean;
@@ -29,6 +31,14 @@ import javax.management.MXBean;
  * property determined by {@link #getStatType()}.
  */
 public interface OperationalStats {
+
+  /**
+   * Initializes the operational stats extension. Called immediately after loading the operational stats extension.
+   *
+   * @param injector an {@link Injector} to inject the necessary CDAP classes
+   */
+  void initialize(Injector injector);
+
   /**
    * Returns the service name for which this operational stat is emitted. Service names are case-insensitive, and will
    * be converted to lower case.
@@ -44,4 +54,9 @@ public interface OperationalStats {
    * Collects the stats that are reported by this object.
    */
   void collect() throws IOException;
+
+  /**
+   * Performs any cleanup as necessary.
+   */
+  void destroy();
 }

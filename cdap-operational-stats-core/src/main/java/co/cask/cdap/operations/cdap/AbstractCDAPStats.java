@@ -14,29 +14,25 @@
  * the License.
  */
 
-package co.cask.cdap.operations.hdfs;
+package co.cask.cdap.operations.cdap;
 
 import co.cask.cdap.operations.AbstractOperationalStats;
 import co.cask.cdap.operations.OperationalStats;
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.hadoop.conf.Configuration;
+import com.google.inject.Injector;
 
 /**
- * Base class for {@link OperationalStats} for HDFS
+ * Base class for CDAP {@link OperationalStats}.
  */
-public abstract class AbstractHDFSStats extends AbstractOperationalStats {
-  @VisibleForTesting
-  static final String SERVICE_NAME = "HDFS";
+public abstract class AbstractCDAPStats extends AbstractOperationalStats {
+  protected Injector injector;
 
-  protected final Configuration conf;
-
-  @VisibleForTesting
-  AbstractHDFSStats(Configuration conf) {
-    this.conf = conf;
+  @Override
+  public void initialize(Injector injector) {
+    this.injector = injector;
   }
 
   @Override
   public String getServiceName() {
-    return SERVICE_NAME;
+    return "CDAP";
   }
 }
