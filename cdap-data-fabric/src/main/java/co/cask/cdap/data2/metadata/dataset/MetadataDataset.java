@@ -40,6 +40,7 @@ import co.cask.cdap.proto.id.NamespacedEntityId;
 import co.cask.cdap.proto.id.ProgramId;
 import co.cask.cdap.proto.id.StreamId;
 import co.cask.cdap.proto.metadata.MetadataSearchTargetType;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
@@ -512,29 +513,40 @@ public class MetadataDataset extends AbstractDataset {
    *                    at the end for a prefix search
    * @param types the {@link MetadataSearchTargetType} to restrict the search to, if empty all types are searched
    */
-  public List<MetadataEntry> search(String namespaceId, String searchQuery, Set<MetadataSearchTargetType> types) {
-    boolean includeAllTypes = types.isEmpty() || types.contains(MetadataSearchTargetType.ALL);
+  @VisibleForTesting
+  List<MetadataEntry> search(String namespaceId, String searchQuery, Set<MetadataSearchTargetType> types) {
+    return search(namespaceId, searchQuery, types, Long.MAX_VALUE);
+  }
+
+  public ImmutablePair<List<MetadataEntry>, List<MetadataEntry>> search(
+    String namespaceId, String searchQuery, Set<MetadataSearchTargetType> types,
+    long offset, int limit, int numCursors, @Nullable MetadataEntry startFromCursor
+  ) {
     List<MetadataEntry> results = new ArrayList<>();
+    boolean includeAllTypes = types.isEmpty() || types.contains(MetadataSearchTargetType.ALL);
+    long numResultsPerTerm = offset + (numCursors * limit);
+    List<MetadataEntry> cursors = new ArrayList<>(numCursors);
+    int cursorCount = limit;
     for (String searchTerm : getSearchTerms(namespaceId, searchQuery)) {
-      Scanner scanner;
-      if (searchTerm.endsWith("*")) {
-        // if prefixed search get start and stop key
-        byte[] startKey = Bytes.toBytes(searchTerm.substring(0, searchTerm.lastIndexOf("*")));
-        byte[] stopKey = Bytes.stopKeyForPrefix(startKey);
-        scanner = indexedTable.scanByIndex(Bytes.toBytes(INDEX_COLUMN), startKey, stopKey);
-      } else {
-        byte[] value = Bytes.toBytes(searchTerm);
-        scanner = indexedTable.readByIndex(Bytes.toBytes(INDEX_COLUMN), value);
-      }
-      try {
+      byte[] startKey = startFromCursor != null ?
+        MdsKey.getMDSIndexKey(
+          startFromCursor.getTargetId(), startFromCursor.getKey(), startFromCursor.getValue()).getKey() :
+        searchTerm.endsWith("*") ?
+        Bytes.toBytes(searchTerm.substring(0, searchTerm.lastIndexOf("*"))) :
+        Bytes.toBytes(searchTerm);
+      byte[] stopKey = Bytes.stopKeyForPrefix(startKey);
+      try (Scanner scanner = searchTerm.endsWith("*") ?
+        indexedTable.scanByIndex(Bytes.toBytes(INDEX_COLUMN), startKey, stopKey) :
+        indexedTable.readByIndex(Bytes.toBytes(INDEX_COLUMN), startKey)) {
+        long count = 0;
         Row next;
-        while ((next = scanner.next()) != null) {
+        while ((next = scanner.next()) != null && count < numResultsPerTerm) {
           String rowValue = next.getString(INDEX_COLUMN);
           if (rowValue == null) {
             continue;
           }
 
-          final byte[] rowKey = next.getRow();
+          byte[] rowKey = next.getRow();
           String targetType = MdsKey.getTargetType(rowKey);
 
           // Filter on target type if not set to include all types
@@ -547,6 +559,59 @@ public class MetadataDataset extends AbstractDataset {
           String key = MdsKey.getMetadataKey(targetType, rowKey);
           MetadataEntry entry = getMetadata(targetId, key);
           results.add(entry);
+          count++;
+
+          if (cursors.size() < numCursors) {
+            cursorCount--;
+            if (cursorCount == 0) {
+              cursorCount = limit;
+              cursors.add(entry);
+            }
+          }
+        }
+      }
+    }
+    return new ImmutablePair<>(results, cursors);
+  }
+
+  public List<MetadataEntry> search(String namespaceId, String searchQuery, Set<MetadataSearchTargetType> types,
+                                    long numResultsPerTerm) {
+    List<MetadataEntry> results = new ArrayList<>();
+    boolean includeAllTypes = types.isEmpty() || types.contains(MetadataSearchTargetType.ALL);
+    for (String searchTerm : getSearchTerms(namespaceId, searchQuery)) {
+      Scanner scanner;
+      if (searchTerm.endsWith("*")) {
+        // if prefixed search get start and stop key
+        byte[] startKey = Bytes.toBytes(searchTerm.substring(0, searchTerm.lastIndexOf("*")));
+        byte[] stopKey = Bytes.stopKeyForPrefix(startKey);
+        scanner = indexedTable.scanByIndex(Bytes.toBytes(INDEX_COLUMN), startKey, stopKey);
+      } else {
+        byte[] value = Bytes.toBytes(searchTerm);
+        scanner = indexedTable.readByIndex(Bytes.toBytes(INDEX_COLUMN), value);
+      }
+      try {
+        long count = 0;
+        Row next;
+        while ((next = scanner.next()) != null && count < numResultsPerTerm) {
+          String rowValue = next.getString(INDEX_COLUMN);
+          if (rowValue == null) {
+            continue;
+          }
+
+          byte[] rowKey = next.getRow();
+          String targetType = MdsKey.getTargetType(rowKey);
+
+          // Filter on target type if not set to include all types
+          if (!includeAllTypes &&
+            !types.contains(MetadataSearchTargetType.valueOfSerializedForm(targetType))) {
+            continue;
+          }
+
+          NamespacedEntityId targetId = MdsKey.getNamespacedIdFromKey(targetType, rowKey);
+          String key = MdsKey.getMetadataKey(targetType, rowKey);
+          MetadataEntry entry = getMetadata(targetId, key);
+          results.add(entry);
+          count++;
         }
       } finally {
         scanner.close();

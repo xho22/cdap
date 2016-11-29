@@ -18,7 +18,6 @@ package co.cask.cdap.data2.metadata.dataset;
 import co.cask.cdap.proto.id.NamespacedEntityId;
 
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * Represents a single Metadata entry for a CDAP Entity.
@@ -28,18 +27,15 @@ public class MetadataEntry {
   private final String key;
   private final String value;
   private final String schema;
+  // TODO: Doing this so we can return cursors, but this may not be the most optimal way to do it.
+  private final String rowKey;
 
   public MetadataEntry(NamespacedEntityId targetId, String key, String value) {
-    this(targetId, key, value, null);
-  }
-
-  //TODO: Remove this constructor when it is finalized that schema need not be stored separately
-  public MetadataEntry(NamespacedEntityId targetId, String key, String value,
-                       @Nullable String schema) {
     this.targetId = targetId;
     this.key = key;
     this.value = value;
-    this.schema = schema;
+    this.schema = null;
+    this.rowKey = null;
   }
 
   public NamespacedEntityId getTargetId() {
@@ -72,7 +68,8 @@ public class MetadataEntry {
     return Objects.equals(targetId, that.targetId) &&
       Objects.equals(key, that.key) &&
       Objects.equals(value, that.value) &&
-      Objects.equals(schema, that.schema);
+      Objects.equals(schema, that.schema) &&
+      Objects.equals(rowKey, that.rowKey);
   }
 
   @Override

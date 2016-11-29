@@ -112,6 +112,10 @@ final class MdsKey {
     return builder.build();
   }
 
+  static MDSKey getMDSIndexPrefix(NamespacedEntityId targetId) {
+    return getMDSKeyPrefix(targetId, INDEX_ROW_PREFIX).build();
+  }
+
   static NamespacedEntityId getNamespacedIdFromKey(String type, byte[] rowKey) {
     MDSKey.Splitter keySplitter = new MDSKey(rowKey).split();
 

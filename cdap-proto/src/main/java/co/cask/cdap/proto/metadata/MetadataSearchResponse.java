@@ -27,13 +27,16 @@ public class MetadataSearchResponse {
   private final int size;
   private final int total;
   private final Set<MetadataSearchResultRecord> results;
+  private final Set<String> cursors;
 
-  public MetadataSearchResponse(String sort, int offset, int size, int total, Set<MetadataSearchResultRecord> results) {
+  public MetadataSearchResponse(String sort, int offset, int size, int total, Set<MetadataSearchResultRecord> results,
+                                Set<String> cursors) {
     this.sort = sort;
     this.offset = offset;
     this.size = size;
     this.total = total;
     this.results = results;
+    this.cursors = cursors;
   }
 
   public String getSort() {
@@ -54,5 +57,9 @@ public class MetadataSearchResponse {
 
   public Set<MetadataSearchResultRecord> getResults() {
     return results;
+  }
+
+  public Set<String> getCursors() {
+    return cursors;
   }
 }

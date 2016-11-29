@@ -353,37 +353,40 @@ public class DefaultMetadataStore implements MetadataStore {
   }
 
   @Override
-  public Set<MetadataSearchResultRecord> searchMetadata(String namespaceId, String searchQuery) {
+  public Set<MetadataSearchResultRecord> searchMetadata(String namespaceId, String searchQuery, long numResults) {
     return ImmutableSet.<MetadataSearchResultRecord>builder()
-      .addAll(searchMetadata(MetadataScope.USER, namespaceId, searchQuery))
-      .addAll(searchMetadata(MetadataScope.SYSTEM, namespaceId, searchQuery))
+      .addAll(searchMetadata(MetadataScope.USER, namespaceId, searchQuery, numResults))
+      .addAll(searchMetadata(MetadataScope.SYSTEM, namespaceId, searchQuery, numResults))
       .build();
   }
 
   @Override
-  public Set<MetadataSearchResultRecord> searchMetadata(MetadataScope scope, String namespaceId, String searchQuery) {
-    return searchMetadataOnType(scope, namespaceId, searchQuery, ImmutableSet.of(MetadataSearchTargetType.ALL));
+  public Set<MetadataSearchResultRecord> searchMetadata(MetadataScope scope, String namespaceId, String searchQuery,
+                                                        long numResults) {
+    return searchMetadataOnType(scope, namespaceId, searchQuery, ImmutableSet.of(MetadataSearchTargetType.ALL),
+                                numResults);
   }
 
   @Override
   public Set<MetadataSearchResultRecord> searchMetadataOnType(String namespaceId, String searchQuery,
-                                                              Set<MetadataSearchTargetType> types) {
+                                                              Set<MetadataSearchTargetType> types, long numResults) {
     return ImmutableSet.<MetadataSearchResultRecord>builder()
-      .addAll(searchMetadataOnType(MetadataScope.USER, namespaceId, searchQuery, types))
-      .addAll(searchMetadataOnType(MetadataScope.SYSTEM, namespaceId, searchQuery, types))
+      .addAll(searchMetadataOnType(MetadataScope.USER, namespaceId, searchQuery, types, numResults))
+      .addAll(searchMetadataOnType(MetadataScope.SYSTEM, namespaceId, searchQuery, types, numResults))
       .build();
   }
 
   @Override
   public Set<MetadataSearchResultRecord> searchMetadataOnType(final MetadataScope scope, final String namespaceId,
                                                               final String searchQuery,
-                                                              final Set<MetadataSearchTargetType> types) {
+                                                              final Set<MetadataSearchTargetType> types,
+                                                              final long numResults) {
     // Execute search query
     Iterable<MetadataEntry> results = execute(new TransactionExecutor.Function<MetadataDataset,
       Iterable<MetadataEntry>>() {
       @Override
       public Iterable<MetadataEntry> apply(MetadataDataset input) throws Exception {
-        return input.search(namespaceId, searchQuery, types);
+        return input.search(namespaceId, searchQuery, types, numResults);
       }
     }, scope);
 
@@ -427,9 +430,9 @@ public class DefaultMetadataStore implements MetadataStore {
     return metadataMap;
   }
 
-  Set<MetadataSearchResultRecord> addMetadataToResults(List<Map.Entry<NamespacedEntityId, Integer>> results,
-                                                       Map<NamespacedEntityId, Metadata> systemMetadata,
-                                                       Map<NamespacedEntityId, Metadata> userMetadata) {
+  private Set<MetadataSearchResultRecord> addMetadataToResults(List<Map.Entry<NamespacedEntityId, Integer>> results,
+                                                               Map<NamespacedEntityId, Metadata> systemMetadata,
+                                                               Map<NamespacedEntityId, Metadata> userMetadata) {
     Set<MetadataSearchResultRecord> result = new LinkedHashSet<>();
     for (Map.Entry<NamespacedEntityId, Integer> entry : results) {
       ImmutableMap.Builder<MetadataScope, co.cask.cdap.proto.metadata.Metadata> builder = ImmutableMap.builder();

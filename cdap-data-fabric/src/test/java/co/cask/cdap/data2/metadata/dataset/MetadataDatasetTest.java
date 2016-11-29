@@ -15,6 +15,7 @@
  */
 package co.cask.cdap.data2.metadata.dataset;
 
+import co.cask.cdap.api.dataset.DatasetAdmin;
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.data2.datafabric.dataset.DatasetsUtil;
 import co.cask.cdap.data2.dataset2.DatasetFrameworkTestUtil;
@@ -82,7 +83,9 @@ public class MetadataDatasetTest {
   @After
   public void after() throws Exception {
     dataset = null;
-    dsFrameworkUtil.getFramework().getAdmin(datasetInstance, null).truncate();
+    DatasetAdmin admin = dsFrameworkUtil.getFramework().getAdmin(datasetInstance, null);
+    Assert.assertNotNull(admin);
+    admin.truncate();
   }
 
   @Test
@@ -725,6 +728,149 @@ public class MetadataDatasetTest {
                             dataset.search(flow1.getNamespace(), "tag1", ImmutableSet.<MetadataSearchTargetType>of()));
       }
     });
+  }
+
+//  @Test
+//  public void testAdvancedSearch() throws Exception {
+//    txnl.execute(new TransactionExecutor.Subroutine() {
+//      @Override
+//      public void apply() throws Exception {
+//        dataset.setProperty(flow1, "key1", "value1");
+//        dataset.setProperty(flow1, "key2", "value2");
+//        dataset.addTags(flow1, "tag1", "tag2");
+//        dataset.setProperty(app1, "key", "value2");
+//        dataset.addTags(app1, "tag1");
+//      }
+//    });
+//    final AtomicReference<ImmutablePair<List<MetadataEntry>, List<MetadataEntry>>> results = new AtomicReference<>();
+//    // search with 1 cursor
+//    txnl.execute(new TransactionExecutor.Subroutine() {
+//      @Override
+//      public void apply() throws Exception {
+//         results.set(
+//           dataset.search(flow1.getNamespace(), "val*", Collections.<MetadataSearchTargetType>emptySet(), 1L,
+// 1, 1, null)
+//         );
+//      }
+//    });
+//    // even though 3 results match the search query, we have only requested 1 cursor, so we get only 2
+//    Assert.assertEquals(2, results.get().getFirst().size());
+//    Assert.assertEquals(1, results.get().getSecond().size());
+//    // search with 2 cursors
+//    txnl.execute(new TransactionExecutor.Subroutine() {
+//      @Override
+//      public void apply() throws Exception {
+//        results.set(
+//          dataset.search(flow1.getNamespace(), "val*", Collections.<MetadataSearchTargetType>emptySet(), 1L, 1,
+// 2, null)
+//        );
+//      }
+//    });
+//    Assert.assertEquals(3, results.get().getFirst().size());
+//    Assert.assertEquals(2, results.get().getSecond().size());
+//    // provide a cursor to start from
+//    final MetadataEntry cursor1 = results.get().getSecond().get(0);
+//    txnl.execute(new TransactionExecutor.Subroutine() {
+//      @Override
+//      public void apply() throws Exception {
+//        results.set(
+//          dataset.search(flow1.getNamespace(), "val*", Collections.<MetadataSearchTargetType>emptySet(), 1L, 1,
+// 2, cursor1)
+//        );
+//      }
+//    });
+//    Assert.assertEquals(2, results.get().getFirst().size());
+//    // two cursors are requested, but only one more is available, starting from the provided cursor
+//    Assert.assertEquals(1, results.get().getSecond().size());
+//  }
+
+  @Test
+  public void testAdvancedSearch() throws Exception {
+    txnl.execute(new TransactionExecutor.Subroutine() {
+      @Override
+      public void apply() throws Exception {
+        dataset.setProperty(flow1, "key1", "value1");
+        dataset.setProperty(flow1, "key2", "value2");
+        dataset.addTags(flow1, "tag1", "tag2");
+        dataset.setProperty(app1, "key", "value2");
+        dataset.addTags(app1, "tag1");
+      }
+    });
+    List<MetadataEntry> allThreeFlows = ImmutableList.of(
+      new MetadataEntry(flow1, "key1", "value1"),
+      new MetadataEntry(flow1, "key2", "value2"),
+      new MetadataEntry(app1, "key", "value2")
+    );
+    List<MetadataEntry> firstOnly = ImmutableList.of(
+      new MetadataEntry(flow1, "key1", "value1")
+    );
+    List<MetadataEntry> firstTwo = ImmutableList.of(
+      new MetadataEntry(flow1, "key1", "value1"),
+      new MetadataEntry(flow1, "key2", "value2")
+    );
+    final AtomicReference<List<MetadataEntry>> results = new AtomicReference<>();
+    // search with numResults = 1
+    txnl.execute(new TransactionExecutor.Subroutine() {
+      @Override
+      public void apply() throws Exception {
+        results.set(
+          dataset.search(flow1.getNamespace(), "val*", Collections.<MetadataSearchTargetType>emptySet(), 1L)
+        );
+      }
+    });
+    // search with limit numResults = 2
+    Assert.assertEquals(firstOnly, results.get());
+    txnl.execute(new TransactionExecutor.Subroutine() {
+      @Override
+      public void apply() throws Exception {
+        results.set(
+          dataset.search(flow1.getNamespace(), "val*", Collections.<MetadataSearchTargetType>emptySet(), 2L)
+        );
+      }
+    });
+    Assert.assertEquals(firstTwo, results.get());
+    // make the same query again. Should return the exact same result
+    txnl.execute(new TransactionExecutor.Subroutine() {
+      @Override
+      public void apply() throws Exception {
+        results.set(
+          dataset.search(flow1.getNamespace(), "val*", Collections.<MetadataSearchTargetType>emptySet(), 2L)
+        );
+      }
+    });
+    Assert.assertEquals(firstTwo, results.get());
+    // search with numResults = 3.
+    txnl.execute(new TransactionExecutor.Subroutine() {
+      @Override
+      public void apply() throws Exception {
+        results.set(
+          dataset.search(flow1.getNamespace(), "val*", Collections.<MetadataSearchTargetType>emptySet(), 4L)
+        );
+      }
+    });
+    Assert.assertEquals(allThreeFlows, results.get());
+    // search with numResults = Long.MAX_VALUE. Should return all all 3
+    txnl.execute(new TransactionExecutor.Subroutine() {
+      @Override
+      public void apply() throws Exception {
+        results.set(
+          dataset.search(flow1.getNamespace(), "val*", Collections.<MetadataSearchTargetType>emptySet(),
+                         Long.MAX_VALUE)
+        );
+      }
+    });
+    Assert.assertEquals(allThreeFlows, results.get());
+    // search with a composite query. Should return numComponents * numResults
+    txnl.execute(new TransactionExecutor.Subroutine() {
+      @Override
+      public void apply() throws Exception {
+        results.set(
+          dataset.search(flow1.getNamespace(), "val* tag*", Collections.<MetadataSearchTargetType>emptySet(), 1L)
+        );
+      }
+    });
+    // requested only one result, but get two since its a composite query
+    Assert.assertEquals(2, results.get().size());
   }
 
   @Test

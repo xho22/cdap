@@ -235,8 +235,6 @@ public class MetadataStoreTest {
     boolean auditEnabled = cConf.getBoolean(Constants.Audit.ENABLED);
     cConf.setBoolean(Constants.Audit.ENABLED, false);
     generateMetadataUpdates();
-    String topic = cConf.get(Constants.Audit.KAFKA_TOPIC);
-
     try {
       List<AuditMessage> publishedAuditMessages = auditPublisher.popMessages();
       Assert.fail(String.format("Expected no changes to be published, but found %d changes: %s.",
@@ -280,7 +278,8 @@ public class MetadataStoreTest {
     store.setProperties(MetadataScope.USER, dataset1, datasetUserProps);
 
     // Test score and metadata match
-    List<MetadataSearchResultRecord> actual = Lists.newArrayList(store.searchMetadata("ns1", "value1 multiword:av2"));
+    List<MetadataSearchResultRecord> actual = Lists.newArrayList(
+      store.searchMetadata("ns1", "value1 multiword:av2", Long.MAX_VALUE));
 
     Map<MetadataScope, Metadata> expectedFlowMetadata =
       ImmutableMap.of(MetadataScope.USER, new Metadata(flowUserProps, flowUserTags),
@@ -298,7 +297,7 @@ public class MetadataStoreTest {
       );
     Assert.assertEquals(expected, actual);
 
-    actual = Lists.newArrayList(store.searchMetadata("ns1", "value1 sValue*"));
+    actual = Lists.newArrayList(store.searchMetadata("ns1", "value1 sValue*", Long.MAX_VALUE));
     expected = Lists.newArrayList(
       new MetadataSearchResultRecord(stream1,
                                      expectedStreamMetadata),
@@ -309,7 +308,7 @@ public class MetadataStoreTest {
     );
     Assert.assertEquals(expected, actual);
 
-    actual = Lists.newArrayList(store.searchMetadata("ns1", "*"));
+    actual = Lists.newArrayList(store.searchMetadata("ns1", "*", Long.MAX_VALUE));
     Assert.assertTrue(actual.containsAll(expected));
   }
 

@@ -164,7 +164,7 @@ public interface MetadataStore {
   /**
    * Search the Metadata Dataset in both {@link MetadataScope#USER} and {@link MetadataScope#SYSTEM}.
    */
-  Set<MetadataSearchResultRecord> searchMetadata(String namespaceId, String searchQuery);
+  Set<MetadataSearchResultRecord> searchMetadata(String namespaceId, String searchQuery, long numResults);
 
   /**
    * Search the Metadata Dataset in the specified {@link MetadataScope}.
@@ -173,7 +173,8 @@ public interface MetadataStore {
    * @param namespaceId the namespace to search in
    * @param searchQuery the search query, which could be of two forms: [key]:[value] or just [value]
    */
-  Set<MetadataSearchResultRecord> searchMetadata(MetadataScope scope, String namespaceId, String searchQuery);
+  Set<MetadataSearchResultRecord> searchMetadata(MetadataScope scope, String namespaceId,
+                                                 String searchQuery, long numResults);
 
   /**
    * Search the Metadata Dataset for the specified target types in both {@link MetadataScope#USER} and
@@ -184,7 +185,7 @@ public interface MetadataStore {
    * @param types the {@link MetadataSearchTargetType} to restrict the search to, if empty all types are searched
    */
   Set<MetadataSearchResultRecord> searchMetadataOnType(String namespaceId, String searchQuery,
-                                                       Set<MetadataSearchTargetType> types);
+                                                       Set<MetadataSearchTargetType> types, long numResults);
 
   /**
    * Search the Metadata Dataset for the specified target types in the specified {@link MetadataScope}.
@@ -195,7 +196,7 @@ public interface MetadataStore {
    * @param types the {@link MetadataSearchTargetType} to restrict the search to, if empty all types are searched
    */
   Set<MetadataSearchResultRecord> searchMetadataOnType(MetadataScope scope, String namespaceId, String searchQuery,
-                                                       Set<MetadataSearchTargetType> types);
+                                                       Set<MetadataSearchTargetType> types, long numResults);
 
   /**
    * Returns the snapshot of the metadata for entities on or before the given time in both {@link MetadataScope#USER}

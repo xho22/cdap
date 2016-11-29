@@ -892,7 +892,7 @@ public class MetadataHttpHandler extends AbstractHttpHandler {
                              @QueryParam("target") List<String> targets,
                              @QueryParam("sort") @DefaultValue("") String sort,
                              @QueryParam("offset") @DefaultValue("0") int offset,
-                             @QueryParam("size") @DefaultValue("") String sizeStr) throws Exception {
+                             @QueryParam("limit") @DefaultValue("") String limitStr) throws Exception {
     Set<MetadataSearchTargetType> types = Collections.emptySet();
     if (targets != null) {
       types = ImmutableSet.copyOf(Iterables.transform(targets, STRING_TO_TARGET_TYPE));
@@ -919,23 +919,24 @@ public class MetadataHttpHandler extends AbstractHttpHandler {
       }
     }
 
-    int size = Integer.MAX_VALUE;
-    if (!sizeStr.isEmpty()) {
+    int limit = Integer.MAX_VALUE;
+    if (!limitStr.isEmpty()) {
       try {
-        size = Integer.parseInt(sizeStr);
+        limit = Integer.parseInt(limitStr);
       } catch (NumberFormatException e) {
-        throw new BadRequestException(String.format("Parameter 'size' should be numeric. Found %s.", sizeStr));
+        throw new BadRequestException(String.format("Parameter 'size' should be numeric. Found %s.", limitStr));
       }
     }
     if (searchQuery == null) {
       throw new BadRequestException("Parameter 'query' should be passed to the search API.");
     }
     Set<MetadataSearchResultRecord> results =
-      metadataAdmin.searchMetadata(namespaceId, URLDecoder.decode(searchQuery, "UTF-8"), types);
+      metadataAdmin.searchMetadata(namespaceId, URLDecoder.decode(searchQuery, "UTF-8"), types, offset + limit);
 
     NavigableSet<MetadataSearchResultRecord> sorted = applySorting(results, sortBy, sortOrder);
-    Set<MetadataSearchResultRecord> paginated = paginate(sorted, offset, size);
-    MetadataSearchResponse response = new MetadataSearchResponse(sort, offset, size, sorted.size(), paginated);
+    Set<MetadataSearchResultRecord> paginated = paginate(sorted, offset, limit);
+    MetadataSearchResponse response = new MetadataSearchResponse(sort, offset, limit, sorted.size(), paginated,
+                                                                 Collections.<String>emptySet());
     responder.sendJson(HttpResponseStatus.OK, response, MetadataSearchResponse.class, GSON);
   }
 
