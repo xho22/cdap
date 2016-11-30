@@ -82,7 +82,7 @@ angular.module(PKG.name + '.services')
 
         // PREVIEW
         runPreview: myHelpers.getConfig('POST', 'REQUEST', '/namespaces/:namespace/previews', false, { suppressErrors: true }),
-        getStagePreview: myHelpers.getConfig('GET', 'REQUEST', previewPath + '/:previewId/loggers/:stage', false, { suppressErrors: true })
+        getStagePreview: myHelpers.getConfig('GET', 'REQUEST', previewPath + '/:previewId/tracers/:stage', false, { suppressErrors: true })
       }
     );
   });
