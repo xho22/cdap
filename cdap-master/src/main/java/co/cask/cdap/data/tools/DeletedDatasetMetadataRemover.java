@@ -54,7 +54,7 @@ final class DeletedDatasetMetadataRemover {
     for (NamespaceMeta namespaceMeta : nsStore.list()) {
       Set<MetadataSearchResultRecord> searchResults =
         metadataStore.searchMetadataOnType(namespaceMeta.getName(), "*",
-                                           ImmutableSet.of(MetadataSearchTargetType.DATASET));
+                                           ImmutableSet.of(MetadataSearchTargetType.DATASET), Long.MAX_VALUE);
       for (MetadataSearchResultRecord searchResult : searchResults) {
         NamespacedEntityId entityId = searchResult.getEntityId();
         Preconditions.checkState(entityId instanceof DatasetId,
