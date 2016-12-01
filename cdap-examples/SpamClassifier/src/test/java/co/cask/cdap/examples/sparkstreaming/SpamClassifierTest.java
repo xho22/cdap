@@ -152,12 +152,8 @@ public class SpamClassifierTest extends TestBase {
              response.getResponseBodyAsString());
     return false;
   }
-
-<<<<<<< Updated upstream
+  
   private void publishKafkaMessages() throws InterruptedException, ExecutionException, TimeoutException {
-=======
-  private void publishKafkaMessages() throws ExecutionException, InterruptedException {
->>>>>>> Stashed changes
     KafkaPublisher publisher = kafkaClient.getPublisher(KafkaPublisher.Ack.ALL_RECEIVED, Compression.NONE);
     KafkaPublisher.Preparer preparer = publisher.prepare(KAFKA_TOPIC);
 
@@ -165,11 +161,7 @@ public class SpamClassifierTest extends TestBase {
                                          "offers pls reply 2 this text with your valid name, house no and postcode"),
                  "1"); // spam
     preparer.add(Charsets.UTF_8.encode("2:I will call you later"), "2"); // ham
-<<<<<<< Updated upstream
     Assert.assertEquals(2, preparer.send().get(60, TimeUnit.SECONDS).intValue());
-=======
-    Assert.assertEquals(2, preparer.send().get().intValue());
->>>>>>> Stashed changes
   }
 
   private void ingestTrainingData() throws IOException {
