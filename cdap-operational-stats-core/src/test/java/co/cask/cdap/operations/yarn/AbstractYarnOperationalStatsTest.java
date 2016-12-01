@@ -21,21 +21,28 @@ import co.cask.cdap.operations.OperationalStats;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
+import org.apache.hadoop.yarn.server.api.records.NodeHealthStatus;
+import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Tests {@link OperationalStats} for Yarn.
  */
 public abstract class AbstractYarnOperationalStatsTest {
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractYarnOperationalStatsTest.class);
+
   @ClassRule
   public static final TemporaryFolder TMP_FOLDER = new TemporaryFolder();
 
@@ -88,13 +95,26 @@ public abstract class AbstractYarnOperationalStatsTest {
     Assert.assertEquals("YARN", resources.getServiceName());
     Assert.assertEquals("resources", resources.getStatType());
     // wait until node manager reports are available
-    Tasks.waitFor(true, new Callable<Boolean>() {
-      @Override
-      public Boolean call() throws Exception {
-        resources.collect();
-        return resources.getTotalMemory() > 0;
-      }
-    }, 10, TimeUnit.SECONDS);
+    try {
+      Tasks.waitFor(true, new Callable<Boolean>() {
+        @Override
+        public Boolean call() throws Exception {
+          resources.collect();
+          return resources.getTotalMemory() > 0;
+        }
+      }, 10, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      NodeManager nodeManager = yarnCluster.getNodeManager(0);
+      NodeHealthStatus nodeHealthStatus = nodeManager.getNMContext().getNodeHealthStatus();
+      LOG.error("nodemanager health status = {}", nodeHealthStatus);
+      nodeManager.getNodeStatusUpdater().sendOutofBandHeartBeat();
+      resources.collect();
+      LOG.error("resources total memory = {}", resources.getTotalMemory());
+      LOG.error("disks healthy = {}", nodeManager.getNodeHealthChecker().getDiskHandler().areDisksHealthy());
+      nodeManager.getNodeStatusUpdater().getNodeStatusAndUpdateContainersInContext(0);
+      resources.collect();
+      LOG.error("resources total memory = {}", resources.getTotalMemory());
+    }
     Assert.assertEquals(0, resources.getUsedMemory());
     Assert.assertEquals(resources.getTotalMemory(), resources.getFreeMemory());
     Assert.assertTrue(resources.getTotalVCores() > 0);
