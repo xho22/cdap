@@ -114,24 +114,8 @@ public class NoOpMetadataStore implements MetadataStore {
   }
 
   @Override
-  public Set<MetadataSearchResultRecord> searchMetadata(String namespaceId, String searchQuery) {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<MetadataSearchResultRecord> searchMetadata(MetadataScope scope, String namespaceId, String searchQuery) {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<MetadataSearchResultRecord> searchMetadataOnType(String namespaceId, String searchQuery,
-                                                              Set<MetadataSearchTargetType> types) {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public Set<MetadataSearchResultRecord> searchMetadataOnType(MetadataScope scope, String namespaceId,
-                                                              String searchQuery, Set<MetadataSearchTargetType> types) {
+  public Set<MetadataSearchResultRecord> search(String namespaceId, String searchQuery,
+                                                Set<MetadataSearchTargetType> types, String sort) {
     return Collections.emptySet();
   }
 

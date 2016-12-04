@@ -161,16 +161,10 @@ public class DefaultMetadataAdmin implements MetadataAdmin {
   }
 
   @Override
-  public Set<MetadataSearchResultRecord> searchMetadata(String namespaceId, String searchQuery,
-                                                        Set<MetadataSearchTargetType> types) throws Exception {
-
-    return filterAuthorizedSearchResult(metadataStore.searchMetadataOnType(namespaceId, searchQuery, types));
-  }
-
-  @Override
-  public Set<MetadataSearchResultRecord> searchMetadata(MetadataScope scope, String namespaceId, String searchQuery,
-                                                        Set<MetadataSearchTargetType> types) throws Exception {
-    return filterAuthorizedSearchResult(metadataStore.searchMetadataOnType(scope, namespaceId, searchQuery, types));
+  public Set<MetadataSearchResultRecord> search(String namespaceId, String searchQuery,
+                                                Set<MetadataSearchTargetType> types,
+                                                String sort) throws Exception {
+    return filterAuthorizedSearchResult(metadataStore.search(namespaceId, searchQuery, types, sort));
   }
 
   /**

@@ -18,6 +18,7 @@ package co.cask.cdap.data2.metadata.indexer;
 
 import co.cask.cdap.data2.metadata.dataset.MetadataDataset;
 import co.cask.cdap.data2.metadata.dataset.MetadataEntry;
+import co.cask.cdap.data2.metadata.dataset.SortInfo;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -49,5 +50,10 @@ public class DefaultValueIndexer implements Indexer {
     // add all value indexes too
     indexes.addAll(valueIndexes);
     return indexes;
+  }
+
+  @Override
+  public SortInfo.SortOrder getSortOrder() {
+    return SortInfo.SortOrder.WEIGHTED;
   }
 }

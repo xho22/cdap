@@ -26,6 +26,7 @@ import co.cask.cdap.proto.metadata.MetadataSearchTargetType;
 
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 
 /**
  * Interface that the {@link MetadataHttpHandler} uses to interact with Metadata.
@@ -153,27 +154,15 @@ public interface MetadataAdmin {
 
   /**
    * Executes a search for CDAP entities in the specified namespace with the specified search query and
-   * an optional set of {@link MetadataSearchTargetType entity types} in both
-   * {@link MetadataScope#USER} and {@link MetadataScope#SYSTEM}.
-   *
-   * @param namespaceId The namespace to filter the search by
-   * @param searchQuery The search query
-   * @param types The types of CDAP entity to be searched. If empty all possible types will be searched
-   * @return a {@link Set} containing a {@link MetadataSearchResultRecord} for each matching entity
-   */
-  Set<MetadataSearchResultRecord> searchMetadata(String namespaceId, String searchQuery,
-                                                 Set<MetadataSearchTargetType> types) throws Exception;
-
-  /**
-   * Executes a search for CDAP entities in the specified namespace with the specified search query and
    * an optional set of {@link MetadataSearchTargetType entity types} in the specified {@link MetadataScope}.
    *
-   * @param scope the {@link MetadataScope} to restrict the search to
    * @param namespaceId The namespace id to filter the search by
    * @param searchQuery The search query
    * @param types The types of CDAP entity to be searched. If empty all possible types will be searched
+   * @param sort The sort string representing information for sorting. This string can be in a format that the
+   *             configured search/indexing provider supports. If {@code null}, no additional sorting must be performed
    * @return a {@link Set} containing a {@link MetadataSearchResultRecord} for each matching entity
    */
-  Set<MetadataSearchResultRecord> searchMetadata(MetadataScope scope, String namespaceId, String searchQuery,
-                                                 Set<MetadataSearchTargetType> types) throws Exception;
+  Set<MetadataSearchResultRecord> search(String namespaceId, String searchQuery, Set<MetadataSearchTargetType> types,
+                                         @Nullable String sort) throws Exception;
 }

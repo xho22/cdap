@@ -38,6 +38,7 @@ import co.cask.cdap.proto.id.StreamId;
 import co.cask.cdap.proto.metadata.Metadata;
 import co.cask.cdap.proto.metadata.MetadataScope;
 import co.cask.cdap.proto.metadata.MetadataSearchResultRecord;
+import co.cask.cdap.proto.metadata.MetadataSearchTargetType;
 import co.cask.cdap.security.auth.context.AuthenticationContextModules;
 import co.cask.cdap.security.authorization.AuthorizationEnforcementModule;
 import co.cask.cdap.security.authorization.AuthorizationTestModule;
@@ -60,6 +61,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -235,7 +237,6 @@ public class MetadataStoreTest {
     boolean auditEnabled = cConf.getBoolean(Constants.Audit.ENABLED);
     cConf.setBoolean(Constants.Audit.ENABLED, false);
     generateMetadataUpdates();
-    String topic = cConf.get(Constants.Audit.KAFKA_TOPIC);
 
     try {
       List<AuditMessage> publishedAuditMessages = auditPublisher.popMessages();
@@ -280,7 +281,9 @@ public class MetadataStoreTest {
     store.setProperties(MetadataScope.USER, dataset1, datasetUserProps);
 
     // Test score and metadata match
-    List<MetadataSearchResultRecord> actual = Lists.newArrayList(store.searchMetadata("ns1", "value1 multiword:av2"));
+    List<MetadataSearchResultRecord> actual = Lists.newArrayList(
+      store.search("ns1", "value1 multiword:av2", EnumSet.allOf(MetadataSearchTargetType.class), null)
+    );
 
     Map<MetadataScope, Metadata> expectedFlowMetadata =
       ImmutableMap.of(MetadataScope.USER, new Metadata(flowUserProps, flowUserTags),
@@ -298,7 +301,9 @@ public class MetadataStoreTest {
       );
     Assert.assertEquals(expected, actual);
 
-    actual = Lists.newArrayList(store.searchMetadata("ns1", "value1 sValue*"));
+    actual = Lists.newArrayList(
+      store.search("ns1", "value1 sValue*", EnumSet.allOf(MetadataSearchTargetType.class), null)
+    );
     expected = Lists.newArrayList(
       new MetadataSearchResultRecord(stream1,
                                      expectedStreamMetadata),
@@ -309,7 +314,7 @@ public class MetadataStoreTest {
     );
     Assert.assertEquals(expected, actual);
 
-    actual = Lists.newArrayList(store.searchMetadata("ns1", "*"));
+    actual = Lists.newArrayList(store.search("ns1", "*", EnumSet.allOf(MetadataSearchTargetType.class), null));
     Assert.assertTrue(actual.containsAll(expected));
   }
 

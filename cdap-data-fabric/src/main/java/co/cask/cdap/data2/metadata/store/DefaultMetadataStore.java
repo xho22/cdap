@@ -19,6 +19,7 @@ package co.cask.cdap.data2.metadata.store;
 import co.cask.cdap.api.dataset.DatasetDefinition;
 import co.cask.cdap.api.dataset.DatasetManagementException;
 import co.cask.cdap.api.dataset.DatasetProperties;
+import co.cask.cdap.common.BadRequestException;
 import co.cask.cdap.data2.audit.AuditPublisher;
 import co.cask.cdap.data2.audit.AuditPublishers;
 import co.cask.cdap.data2.audit.payload.builder.MetadataPayloadBuilder;
@@ -28,6 +29,7 @@ import co.cask.cdap.data2.metadata.dataset.Metadata;
 import co.cask.cdap.data2.metadata.dataset.MetadataDataset;
 import co.cask.cdap.data2.metadata.dataset.MetadataDatasetDefinition;
 import co.cask.cdap.data2.metadata.dataset.MetadataEntry;
+import co.cask.cdap.data2.metadata.dataset.SortInfo;
 import co.cask.cdap.data2.transaction.Transactions;
 import co.cask.cdap.proto.audit.AuditType;
 import co.cask.cdap.proto.id.DatasetId;
@@ -37,9 +39,12 @@ import co.cask.cdap.proto.metadata.MetadataRecord;
 import co.cask.cdap.proto.metadata.MetadataScope;
 import co.cask.cdap.proto.metadata.MetadataSearchResultRecord;
 import co.cask.cdap.proto.metadata.MetadataSearchTargetType;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import org.apache.tephra.TransactionExecutor;
@@ -53,11 +58,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 
 /**
  * Implementation of {@link MetadataStore} used in distributed mode.
@@ -69,6 +77,7 @@ public class DefaultMetadataStore implements MetadataStore {
   private static final Map<String, String> EMPTY_PROPERTIES = ImmutableMap.of();
   private static final Set<String> EMPTY_TAGS = ImmutableSet.of();
   private static final int BATCH_SIZE = 1000;
+  private static final Pattern SPACE_SPLIT_PATTERN = Pattern.compile("\\s+");
 
   private static final Comparator<Map.Entry<NamespacedEntityId, Integer>> SEARCH_RESULT_DESC_SCORE_COMPARATOR =
     new Comparator<Map.Entry<NamespacedEntityId, Integer>>() {
@@ -364,38 +373,38 @@ public class DefaultMetadataStore implements MetadataStore {
   }
 
   @Override
-  public Set<MetadataSearchResultRecord> searchMetadata(String namespaceId, String searchQuery) {
-    return ImmutableSet.<MetadataSearchResultRecord>builder()
-      .addAll(searchMetadata(MetadataScope.USER, namespaceId, searchQuery))
-      .addAll(searchMetadata(MetadataScope.SYSTEM, namespaceId, searchQuery))
-      .build();
-  }
-
-  @Override
-  public Set<MetadataSearchResultRecord> searchMetadata(MetadataScope scope, String namespaceId, String searchQuery) {
-    return searchMetadataOnType(scope, namespaceId, searchQuery, ImmutableSet.of(MetadataSearchTargetType.ALL));
-  }
-
-  @Override
-  public Set<MetadataSearchResultRecord> searchMetadataOnType(String namespaceId, String searchQuery,
-                                                              Set<MetadataSearchTargetType> types) {
-    return ImmutableSet.<MetadataSearchResultRecord>builder()
-      .addAll(searchMetadataOnType(MetadataScope.USER, namespaceId, searchQuery, types))
-      .addAll(searchMetadataOnType(MetadataScope.SYSTEM, namespaceId, searchQuery, types))
-      .build();
-  }
-
-  @Override
-  public Set<MetadataSearchResultRecord> searchMetadataOnType(final MetadataScope scope, final String namespaceId,
-                                                              final String searchQuery,
-                                                              final Set<MetadataSearchTargetType> types) {
-    // Execute search query
-    Iterable<MetadataEntry> results = execute(new TransactionExecutor.Function<MetadataDataset,
-      Iterable<MetadataEntry>>() {
-      @Override
-      public Iterable<MetadataEntry> apply(MetadataDataset input) throws Exception {
-        return input.search(namespaceId, searchQuery, types);
+  public Set<MetadataSearchResultRecord> search(String namespaceId, String searchQuery,
+                                                Set<MetadataSearchTargetType> types,
+                                                @Nullable String sort) throws BadRequestException {
+    if ("*".equals(searchQuery)) {
+      if (sort != null) {
+        return search(MetadataScope.SYSTEM, namespaceId, searchQuery, types, getSortInfo(sort));
       }
+      // Can't disallow this completely, because it is required for upgrade, but log a warning to indicate that
+      // a full index search should not be done in production.
+      LOG.warn("Attempt to search through all indexes. This query can have an adverse effect on performance and is " +
+                 "not recommended for production use. It is only meant to be used for administrative purposes " +
+                 "such as upgrade. To improve the performance of such queries, please specify sort parameters " +
+                 "as well.");
+    }
+
+    return ImmutableSet.<MetadataSearchResultRecord>builder()
+      .addAll(search(MetadataScope.USER, namespaceId, searchQuery, types, getSortInfo(sort)))
+      .addAll(search(MetadataScope.SYSTEM, namespaceId, searchQuery, types, getSortInfo(sort)))
+      .build();
+  }
+
+  private Set<MetadataSearchResultRecord> search(final MetadataScope scope, final String namespaceId,
+                                                 final String searchQuery,
+                                                 final Set<MetadataSearchTargetType> types,
+                                                 final SortInfo sortInfo) throws BadRequestException {
+    // Execute search query
+    List<MetadataEntry> results = execute(
+      new TransactionExecutor.Function<MetadataDataset, List<MetadataEntry>>() {
+        @Override
+        public List<MetadataEntry> apply(MetadataDataset input) throws Exception {
+          return input.search(namespaceId, searchQuery, types, sortInfo);
+        }
     }, scope);
 
     // Score results
@@ -411,7 +420,10 @@ public class DefaultMetadataStore implements MetadataStore {
 
     // Sort the results by score
     List<Map.Entry<NamespacedEntityId, Integer>> resultList = new ArrayList<>(weightedResults.entrySet());
-    Collections.sort(resultList, SEARCH_RESULT_DESC_SCORE_COMPARATOR);
+    // only sort if the sort order is not natural
+    if (SortInfo.SortOrder.WEIGHTED == sortInfo.getSortOrder()) {
+      Collections.sort(resultList, SEARCH_RESULT_DESC_SCORE_COMPARATOR);
+    }
 
     // Fetch metadata for entities in the result list
     // Note: since the fetch is happening in a different transaction, the metadata for entities may have been
@@ -420,6 +432,28 @@ public class DefaultMetadataStore implements MetadataStore {
     Map<NamespacedEntityId, Metadata> userMetadata = fetchMetadata(weightedResults.keySet(), MetadataScope.USER);
 
     return addMetadataToResults(resultList, systemMetadata, userMetadata);
+  }
+
+  private SortInfo getSortInfo(@Nullable String sort) throws BadRequestException {
+    if (Strings.isNullOrEmpty(sort)) {
+      return SortInfo.DEFAULT;
+    }
+    Iterable<String> sortSplit = Splitter.on(SPACE_SPLIT_PATTERN).trimResults().omitEmptyStrings().split(sort);
+    if (Iterables.size(sortSplit) != 2) {
+      throw new BadRequestException("'sort' parameter should be a space separated string containing the field " +
+                                      "('name' or 'create_time') and the sort order ('asc' or 'desc'). Found " + sort);
+    }
+    Iterator<String> iterator = sortSplit.iterator();
+    String sortBy = iterator.next();
+    String sortOrder = iterator.next();
+    if (!"name".equalsIgnoreCase(sortBy) && !"create_time".equalsIgnoreCase(sortBy)) {
+      throw new BadRequestException("Sort field must be 'name' or 'create_time'. Found " + sortBy);
+    }
+    if (!"asc".equalsIgnoreCase(sortOrder) && !"desc".equalsIgnoreCase(sortOrder)) {
+      throw new BadRequestException("Sort order must be one of 'asc' or 'desc'. Found " + sortOrder);
+    }
+
+    return new SortInfo(sortBy, SortInfo.SortOrder.valueOf(sortOrder.toUpperCase()));
   }
 
   private Map<NamespacedEntityId, Metadata> fetchMetadata(final Set<NamespacedEntityId> namespacedEntityIds,

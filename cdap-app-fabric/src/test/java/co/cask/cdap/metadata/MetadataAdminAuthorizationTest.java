@@ -76,11 +76,11 @@ public class MetadataAdminAuthorizationTest {
     SecurityRequestContext.setUserId(ALICE.getName());
     authorizer.grant(NamespaceId.DEFAULT, ALICE, Collections.singleton(Action.WRITE));
     AppFabricTestHelper.deployApplication(Id.Namespace.DEFAULT, AllProgramsApp.class, "{}", cConf);
-    Assert.assertFalse(metadataAdmin.searchMetadata(NamespaceId.DEFAULT.getNamespace(), "*",
-                                                    EnumSet.allOf(MetadataSearchTargetType.class)).isEmpty());
+    Assert.assertFalse(metadataAdmin.search(NamespaceId.DEFAULT.getNamespace(), "*",
+                                            EnumSet.allOf(MetadataSearchTargetType.class), null).isEmpty());
     SecurityRequestContext.setUserId("bob");
-    Assert.assertTrue(metadataAdmin.searchMetadata(NamespaceId.DEFAULT.getNamespace(), "*",
-                                                   EnumSet.allOf(MetadataSearchTargetType.class)).isEmpty());
+    Assert.assertTrue(metadataAdmin.search(NamespaceId.DEFAULT.getNamespace(), "*",
+                                           EnumSet.allOf(MetadataSearchTargetType.class), null).isEmpty());
   }
 
   @AfterClass
