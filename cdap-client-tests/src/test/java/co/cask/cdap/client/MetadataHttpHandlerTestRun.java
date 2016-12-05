@@ -1162,8 +1162,23 @@ public class MetadataHttpHandlerTestRun extends MetadataTestBase {
       new DatasetInstanceConfiguration(Table.class.getName(), Collections.<String, String>emptyMap())
     );
 
+    // search with bad sort param
+    try {
+      searchMetadata(namespace, "*", EnumSet.allOf(MetadataSearchTargetType.class), "entity-name");
+    } catch (BadRequestException e) {
+      // expected
+    }
+
+    // search with bad sort field
     try {
       searchMetadata(namespace, "*", EnumSet.allOf(MetadataSearchTargetType.class), "name asc");
+    } catch (BadRequestException e) {
+      // expected
+    }
+
+    // search with bad sort order
+    try {
+      searchMetadata(namespace, "*", EnumSet.allOf(MetadataSearchTargetType.class), "entity-name unknown");
     } catch (BadRequestException e) {
       // expected
     }

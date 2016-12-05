@@ -607,9 +607,6 @@ public class MetadataDataset extends AbstractDataset {
    * @return formatted search query which is namespaced
    */
   private Iterable<String> getSearchTerms(String namespaceId, String searchQuery) {
-    if ("*".equals(searchQuery)) {
-      return Collections.singletonList(searchQuery);
-    }
     List<String> searchTerms = new ArrayList<>();
     for (String term : Splitter.on(SPACE_SEPARATOR_PATTERN).omitEmptyStrings().trimResults().split(searchQuery)) {
       String formattedSearchTerm = term.toLowerCase();
