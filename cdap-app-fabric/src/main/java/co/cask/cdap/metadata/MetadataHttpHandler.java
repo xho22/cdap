@@ -854,7 +854,8 @@ public class MetadataHttpHandler extends AbstractHttpHandler {
       }
     }
     Set<MetadataSearchResultRecord> results =
-      metadataAdmin.search(namespaceId, URLDecoder.decode(searchQuery, "UTF-8"), types, sort);
+      metadataAdmin.search(namespaceId, URLDecoder.decode(searchQuery, "UTF-8"), types,
+                           URLDecoder.decode(sort, "UTF-8"));
 
     Set<MetadataSearchResultRecord> paginated = paginate(results, offset, size);
     MetadataSearchResponse response = new MetadataSearchResponse(sort, offset, size, results.size(), paginated);

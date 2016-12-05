@@ -30,6 +30,7 @@ import co.cask.cdap.data2.metadata.dataset.MetadataDataset;
 import co.cask.cdap.data2.metadata.dataset.MetadataDatasetDefinition;
 import co.cask.cdap.data2.metadata.dataset.MetadataEntry;
 import co.cask.cdap.data2.metadata.dataset.SortInfo;
+import co.cask.cdap.data2.metadata.system.AbstractSystemMetadataWriter;
 import co.cask.cdap.data2.transaction.Transactions;
 import co.cask.cdap.proto.audit.AuditType;
 import co.cask.cdap.proto.id.DatasetId;
@@ -377,7 +378,7 @@ public class DefaultMetadataStore implements MetadataStore {
                                                 Set<MetadataSearchTargetType> types,
                                                 @Nullable String sort) throws BadRequestException {
     if ("*".equals(searchQuery)) {
-      if (sort != null) {
+      if (!Strings.isNullOrEmpty(sort)) {
         return search(MetadataScope.SYSTEM, namespaceId, searchQuery, types, getSortInfo(sort));
       }
       // Can't disallow this completely, because it is required for upgrade, but log a warning to indicate that
@@ -446,7 +447,8 @@ public class DefaultMetadataStore implements MetadataStore {
     Iterator<String> iterator = sortSplit.iterator();
     String sortBy = iterator.next();
     String sortOrder = iterator.next();
-    if (!"name".equalsIgnoreCase(sortBy) && !"create_time".equalsIgnoreCase(sortBy)) {
+    if (!AbstractSystemMetadataWriter.ENTITY_NAME_KEY.equalsIgnoreCase(sortBy) &&
+      !AbstractSystemMetadataWriter.CREATION_TIME_KEY.equalsIgnoreCase(sortBy)) {
       throw new BadRequestException("Sort field must be 'name' or 'create_time'. Found " + sortBy);
     }
     if (!"asc".equalsIgnoreCase(sortOrder) && !"desc".equalsIgnoreCase(sortOrder)) {
@@ -472,9 +474,9 @@ public class DefaultMetadataStore implements MetadataStore {
     return metadataMap;
   }
 
-  Set<MetadataSearchResultRecord> addMetadataToResults(List<Map.Entry<NamespacedEntityId, Integer>> results,
-                                                       Map<NamespacedEntityId, Metadata> systemMetadata,
-                                                       Map<NamespacedEntityId, Metadata> userMetadata) {
+  private Set<MetadataSearchResultRecord> addMetadataToResults(List<Map.Entry<NamespacedEntityId, Integer>> results,
+                                                               Map<NamespacedEntityId, Metadata> systemMetadata,
+                                                               Map<NamespacedEntityId, Metadata> userMetadata) {
     Set<MetadataSearchResultRecord> result = new LinkedHashSet<>();
     for (Map.Entry<NamespacedEntityId, Integer> entry : results) {
       ImmutableMap.Builder<MetadataScope, co.cask.cdap.proto.metadata.Metadata> builder = ImmutableMap.builder();

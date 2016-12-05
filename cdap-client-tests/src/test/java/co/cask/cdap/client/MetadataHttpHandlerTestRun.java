@@ -35,6 +35,7 @@ import co.cask.cdap.data2.metadata.dataset.MetadataDataset;
 import co.cask.cdap.data2.metadata.system.AbstractSystemMetadataWriter;
 import co.cask.cdap.data2.metadata.system.DatasetSystemMetadataWriter;
 import co.cask.cdap.metadata.MetadataHttpHandler;
+import co.cask.cdap.proto.DatasetInstanceConfiguration;
 import co.cask.cdap.proto.Id;
 import co.cask.cdap.proto.NamespaceMeta;
 import co.cask.cdap.proto.ProgramType;
@@ -72,8 +73,11 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -1103,7 +1107,6 @@ public class MetadataHttpHandlerTestRun extends MetadataTestBase {
     StreamViewId view = stream.view("view");
     streamViewClient.createOrUpdate(view.toId(), new ViewSpecification(new FormatSpecification("csv", null, null)));
 
-
     // Add metadata
     addTags(app, tags);
     addTags(flow, tags);
@@ -1140,6 +1143,32 @@ public class MetadataHttpHandlerTestRun extends MetadataTestBase {
     Assert.assertEquals(ImmutableSet.of(), searchMetadata(namespace, "mydataset"));
     Assert.assertEquals(ImmutableSet.of(), searchMetadata(namespace, "word*"));
     Assert.assertEquals(ImmutableSet.of(), searchMetadata(namespace, "tag1"));
+  }
+
+  @Test
+  public void testSearchResultSorting() throws Exception {
+    NamespaceId namespace = new NamespaceId("ns2");
+    namespaceClient.create(new NamespaceMeta.Builder().setName(namespace.toId()).build());
+
+    StreamId stream = namespace.stream("text");
+    DatasetId datasetInstance = namespace.dataset("mydataset");
+    StreamViewId view = stream.view("view");
+
+    // create entities so system metadata is annotated
+    streamClient.create(stream.toId());
+    streamViewClient.createOrUpdate(view.toId(), new ViewSpecification(new FormatSpecification("csv", null, null)));
+    datasetClient.create(
+      datasetInstance.toId(),
+      new DatasetInstanceConfiguration(Table.class.getName(), Collections.<String, String>emptyMap())
+    );
+
+    try {
+      searchMetadata(namespace, "*", EnumSet.allOf(MetadataSearchTargetType.class), "name asc");
+    } catch (BadRequestException e) {
+      // expected
+    }
+    Set<MetadataSearchResultRecord> searchResults =
+      searchMetadata(namespace, "*", EnumSet.allOf(MetadataSearchTargetType.class), "entity-name asc");
   }
 
   private Set<NamespacedEntityId> getEntities(Set<MetadataSearchResultRecord> results) {
@@ -1539,10 +1568,21 @@ public class MetadataHttpHandlerTestRun extends MetadataTestBase {
   /**
    * strips metadata from search results
    */
+  @Override
   protected Set<MetadataSearchResultRecord> searchMetadata(NamespaceId namespaceId, String query,
                                                            Set<MetadataSearchTargetType> targets) throws Exception {
-    Set<MetadataSearchResultRecord> results = super.searchMetadata(namespaceId, query, targets);
-    Set<MetadataSearchResultRecord> transformed = new HashSet<>();
+    return searchMetadata(namespaceId, query, targets, null);
+  }
+
+  /**
+   * strips metadata from search results
+   */
+  @Override
+  protected Set<MetadataSearchResultRecord> searchMetadata(NamespaceId namespaceId, String query,
+                                                           Set<MetadataSearchTargetType> targets,
+                                                           @Nullable String sort) throws Exception {
+    Set<MetadataSearchResultRecord> results = super.searchMetadata(namespaceId, query, targets, sort);
+    Set<MetadataSearchResultRecord> transformed = new LinkedHashSet<>();
     for (MetadataSearchResultRecord result : results) {
       transformed.add(new MetadataSearchResultRecord(result.getEntityId()));
     }

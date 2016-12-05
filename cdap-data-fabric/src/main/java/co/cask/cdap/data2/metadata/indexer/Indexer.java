@@ -35,7 +35,7 @@ public interface Indexer {
   Set<String> getIndexes(MetadataEntry entry);
 
   /**
-   * Returns the {@link SortInfo} supported by this indexer.
+   * Returns the {@link SortInfo.SortOrder} supported by this indexer.
    */
   SortInfo.SortOrder getSortOrder();
 }
