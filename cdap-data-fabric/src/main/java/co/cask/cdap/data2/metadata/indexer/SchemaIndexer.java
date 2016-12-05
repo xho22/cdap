@@ -36,7 +36,8 @@ public class SchemaIndexer implements Indexer {
 
   @Override
   public Set<String> getIndexes(MetadataEntry entry) {
-    return createIndexes(getSchema(entry.getValue()));
+    Set<String> indexes = createIndexes(getSchema(entry.getValue()));
+    return addKeyValueIndexes(entry.getKey(), indexes);
   }
 
   @Override
@@ -119,5 +120,14 @@ public class SchemaIndexer implements Indexer {
       schema = schema.getNonNullable();
     }
     return schema.getType().toString();
+  }
+
+
+  private Set<String> addKeyValueIndexes(String key, Set<String> indexes) {
+    Set<String> indexesWithKeyValue = new HashSet<>(indexes);
+    for (String index : indexes) {
+      indexesWithKeyValue.add(key + MetadataDataset.KEYVALUE_SEPARATOR + index);
+    }
+    return indexesWithKeyValue;
   }
 }

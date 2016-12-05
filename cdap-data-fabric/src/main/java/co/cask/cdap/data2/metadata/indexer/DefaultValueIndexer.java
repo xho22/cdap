@@ -49,11 +49,20 @@ public class DefaultValueIndexer implements Indexer {
     }
     // add all value indexes too
     indexes.addAll(valueIndexes);
-    return indexes;
+    // store the index with key of the metadata, so that we allow searches of the form [key]:[value]
+    return addKeyValueIndexes(entry.getKey(), indexes);
   }
 
   @Override
   public SortInfo.SortOrder getSortOrder() {
     return SortInfo.SortOrder.WEIGHTED;
+  }
+
+  private Set<String> addKeyValueIndexes(String key, Set<String> indexes) {
+    Set<String> indexesWithKeyValue = new HashSet<>(indexes);
+    for (String index : indexes) {
+      indexesWithKeyValue.add(key + MetadataDataset.KEYVALUE_SEPARATOR + index);
+    }
+    return indexesWithKeyValue;
   }
 }

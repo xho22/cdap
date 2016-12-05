@@ -658,8 +658,6 @@ public class MetadataDataset extends AbstractDataset {
       Set<String> indexes = indexer.getIndexes(metadataEntry);
       String indexColumn = getIndexColumn(metadataKey, indexer.getSortOrder());
       for (String index : indexes) {
-        // store the index with key of the metadata, so that we allow searches of the form [key]:[value]
-        indexedTable.put(getIndexPut(targetId, metadataKey, metadataKey + KEYVALUE_SEPARATOR + index, indexColumn));
         // store just the index value
         indexedTable.put(getIndexPut(targetId, metadataKey, index, indexColumn));
       }
