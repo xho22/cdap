@@ -18,6 +18,7 @@ package co.cask.cdap.gateway.handlers;
 
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.data2.registry.UsageRegistry;
+import co.cask.cdap.proto.Id;
 import co.cask.cdap.proto.ProgramType;
 import co.cask.cdap.proto.id.ApplicationId;
 import co.cask.cdap.proto.id.DatasetId;
@@ -30,6 +31,7 @@ import com.google.inject.Inject;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 
+import java.util.HashSet;
 import java.util.Set;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -55,7 +57,16 @@ public class UsageHandler extends AbstractHttpHandler {
                                  @PathParam("app-id") String appId) {
     final ApplicationId id = new ApplicationId(namespaceId, appId);
     Set<? extends EntityId> ids = registry.getDatasets(id);
-    responder.sendJson(HttpResponseStatus.OK, ids);
+    Set<Id> oldIds = getOldIds(ids);
+    responder.sendJson(HttpResponseStatus.OK, getOldIds(ids));
+  }
+
+  private Set<Id> getOldIds(Set<? extends EntityId> ids) {
+    Set<Id> oldIds = new HashSet<>();
+    for (EntityId entityId : ids) {
+      oldIds.add(entityId.toId());
+    }
+    return oldIds;
   }
 
   @GET
@@ -65,7 +76,7 @@ public class UsageHandler extends AbstractHttpHandler {
                                 @PathParam("app-id") String appId) {
     final ApplicationId id = new ApplicationId(namespaceId, appId);
     Set<? extends EntityId> ids = registry.getStreams(id);
-    responder.sendJson(HttpResponseStatus.OK, ids);
+    responder.sendJson(HttpResponseStatus.OK, getOldIds(ids));
   }
 
   @GET
@@ -78,7 +89,7 @@ public class UsageHandler extends AbstractHttpHandler {
     ProgramType type = ProgramType.valueOfCategoryName(programType);
     final ProgramId id = new ProgramId(namespaceId, appId, type, programId);
     Set<? extends EntityId> ids = registry.getDatasets(id);
-    responder.sendJson(HttpResponseStatus.OK, ids);
+    responder.sendJson(HttpResponseStatus.OK, getOldIds(ids));
   }
 
   @GET
@@ -91,7 +102,7 @@ public class UsageHandler extends AbstractHttpHandler {
     ProgramType type = ProgramType.valueOfCategoryName(programType);
     final ProgramId id = new ProgramId(namespaceId, appId, type, programId);
     Set<? extends EntityId> ids = registry.getStreams(id);
-    responder.sendJson(HttpResponseStatus.OK, ids);
+    responder.sendJson(HttpResponseStatus.OK, getOldIds(ids));
   }
 
   @GET
@@ -101,7 +112,7 @@ public class UsageHandler extends AbstractHttpHandler {
                                 @PathParam("stream-id") String streamId) {
     final StreamId id = new StreamId(namespaceId, streamId);
     Set<? extends EntityId> ids = registry.getPrograms(id);
-    responder.sendJson(HttpResponseStatus.OK, ids);
+    responder.sendJson(HttpResponseStatus.OK, getOldIds(ids));
   }
 
   @GET
@@ -111,6 +122,6 @@ public class UsageHandler extends AbstractHttpHandler {
                                  @PathParam("dataset-id") String datasetId) {
     final DatasetId id = new DatasetId(namespaceId, datasetId);
     Set<? extends EntityId> ids = registry.getPrograms(id);
-    responder.sendJson(HttpResponseStatus.OK, ids);
+    responder.sendJson(HttpResponseStatus.OK, getOldIds(ids));
   }
 }
