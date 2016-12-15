@@ -52,6 +52,13 @@ const TabConfig = {
       name: T.translate('features.Market.tabs.pipelines'),
       content: <AllTabContents />
     },
+    {
+      id: 5,
+      filter: 'example',
+      icon: 'icon-app',
+      name: T.translate('features.Market.tabs.examples'),
+      content: <AllTabContents />
+    },
     // {
     //   id: 5,
     //   filter: 'application',
