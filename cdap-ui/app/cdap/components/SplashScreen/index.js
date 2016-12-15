@@ -130,7 +130,7 @@ import T from 'i18n-react';
               </div>
               <br />
               <div className={'group'}>
-                <a className="spash-screen-btn" target="_blank" href="http://docs.cask.co/cdap">
+                <a className="spash-screen-btn" target="_blank" href="http://docs.cask.co/cdap/4.0.0-SNAPSHOT/en/index.html">
                   <div className="btn btn-default">
                     <span className="fa fa-book btn-icon"></span>{T.translate('features.SplashScreen.buttons.getStarted')}
                   </div>
