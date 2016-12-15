@@ -32,7 +32,7 @@ import org.junit.runners.Suite;
   HBaseMetadataTableTestRun.class,
   HBaseMessageTableTestRun.class,
   HBasePayloadTableTestRun.class,
-  HBaseMessageTTLCoprocessorTestRun.class
+  HBaseTableCoprocessorTestRun.class
 })
 public class HBaseMessageTestSuite {
 

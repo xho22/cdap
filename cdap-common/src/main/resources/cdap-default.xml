@@ -1145,7 +1145,7 @@
   </property>
 
   <property>
-    <name>messaging.local.data.ttl.cleanup.frequency.secs</name>
+    <name>messaging.local.data.cleanup.frequency.secs</name>
     <value>3600</value>
     <description>
       Scheduling frequency of TTL cleanup thread in seconds (only used in Standalone CDAP)
@@ -1254,6 +1254,14 @@
     <value>604800</value>
     <description>
       The default time-to-live in seconds for messages in a topic
+    </description>
+  </property>
+
+  <property>
+    <name>messaging.coprocessor.metadata.cache.expiration.seconds</name>
+    <value>120</value>
+    <description>
+      The default value of expiration time in seconds for metadata cache in hbase data tables coprocessors
     </description>
   </property>
 

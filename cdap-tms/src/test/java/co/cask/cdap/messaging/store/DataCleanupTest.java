@@ -31,13 +31,13 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 /**
- * Tests to verify the coprocessor TTL cleanup logic.
+ * Tests to verify the coprocessor data cleanup logic.
  */
-public abstract class TTLCleanupTest {
+public abstract class DataCleanupTest {
   private static final int GENERATION = 1;
 
   @Test
-  public void testPayloadTableCompaction() throws Exception {
+  public void testPayloadTTLCleanup() throws Exception {
     try (MetadataTable metadataTable = getMetadataTable();
          PayloadTable payloadTable = getPayloadTable();
          MessageTable messageTable = getMessageTable()) {
@@ -83,7 +83,7 @@ public abstract class TTLCleanupTest {
   }
 
   @Test
-  public void testMessageTableCompaction() throws Exception {
+  public void testMessageTTLCleanup() throws Exception {
     try (MetadataTable metadataTable = getMetadataTable();
          MessageTable messageTable = getMessageTable();
          PayloadTable payloadTable = getPayloadTable()) {
@@ -124,6 +124,87 @@ public abstract class TTLCleanupTest {
     }
   }
 
+  @Test
+  public void testOldGenCleanup() throws Exception {
+    try (MetadataTable metadataTable = getMetadataTable();
+         MessageTable messageTable = getMessageTable();
+         PayloadTable payloadTable = getPayloadTable()) {
+      int txWritePtr = 100;
+      TopicId topicId = NamespaceId.DEFAULT.topic("oldGenCleanup");
+      TopicMetadata topic = new TopicMetadata(topicId, TopicMetadata.TTL_KEY, "100000",
+                                              TopicMetadata.GENERATION_KEY, Integer.toString(GENERATION));
+      metadataTable.createTopic(topic);
+      List<MessageTable.Entry> entries = new ArrayList<>();
+      List<PayloadTable.Entry> pentries = new ArrayList<>();
+      byte[] messageId = new byte[MessageId.RAW_ID_SIZE];
+      MessageId.putRawId(0L, (short) 0, 0L, (short) 0, messageId, 0);
+
+      entries.add(new TestMessageEntry(topicId, GENERATION, "data", txWritePtr, (short) 0));
+      pentries.add(new TestPayloadEntry(topicId, GENERATION, "data", txWritePtr, (short) 0));
+      messageTable.store(entries.iterator());
+      payloadTable.store(pentries.iterator());
+
+      // Fetch the entries and make sure we are able to read it
+      try (CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(topic, 0, Integer.MAX_VALUE, null)) {
+        checkMessageEntry(iterator, txWritePtr);
+      }
+
+      try (CloseableIterator<PayloadTable.Entry> iterator = payloadTable.fetch(topic, txWritePtr,
+                                                                               new MessageId(messageId), true, 100)) {
+        checkPayloadEntry(iterator, txWritePtr);
+      }
+
+      // Now run full compaction
+      forceFlushAndCompact(Table.MESSAGE);
+      forceFlushAndCompact(Table.PAYLOAD);
+
+      // Fetch the entries and make sure we are able to read it
+      try (CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(topic, 0, Integer.MAX_VALUE, null)) {
+        checkMessageEntry(iterator, txWritePtr);
+      }
+
+      try (CloseableIterator<PayloadTable.Entry> iterator = payloadTable.fetch(topic, txWritePtr,
+                                                                               new MessageId(messageId), true, 100)) {
+        checkPayloadEntry(iterator, txWritePtr);
+      }
+
+      metadataTable.deleteTopic(topicId);
+      TopicMetadata oldTopic = topic;
+      topic = new TopicMetadata(topicId, TopicMetadata.TTL_KEY, "100000",
+                                TopicMetadata.GENERATION_KEY, Integer.toString(2));
+      metadataTable.createTopic(topic);
+      // Sleep so that the metadata cache in coprocessor expires
+      TimeUnit.SECONDS.sleep(1);
+      forceFlushAndCompact(Table.MESSAGE);
+      forceFlushAndCompact(Table.PAYLOAD);
+
+      try (CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(oldTopic, 0, Integer.MAX_VALUE, null)) {
+        Assert.assertFalse(iterator.hasNext());
+      }
+
+      try (CloseableIterator<PayloadTable.Entry> iterator = payloadTable.fetch(oldTopic, txWritePtr,
+                                                                               new MessageId(messageId), true, 100)) {
+        Assert.assertFalse(iterator.hasNext());
+      }
+    }
+  }
+
+  private void checkMessageEntry(CloseableIterator<MessageTable.Entry> iterator, long txWritePtr) {
+    MessageTable.Entry entry = iterator.next();
+    Assert.assertFalse(iterator.hasNext());
+    Assert.assertEquals(txWritePtr, entry.getTransactionWritePointer());
+    Assert.assertEquals("data", Bytes.toString(entry.getPayload()));
+    iterator.close();
+  }
+
+  private void checkPayloadEntry(CloseableIterator<PayloadTable.Entry> iterator, long txWritePtr) {
+    PayloadTable.Entry entry = iterator.next();
+    Assert.assertFalse(iterator.hasNext());
+    Assert.assertEquals(txWritePtr, entry.getTransactionWritePointer());
+    Assert.assertEquals("data", Bytes.toString(entry.getPayload()));
+    iterator.close();
+  }
+
   protected static enum Table {
     MESSAGE,
     PAYLOAD
@@ -137,7 +218,7 @@ public abstract class TTLCleanupTest {
 
   protected abstract MessageTable getMessageTable() throws Exception;
 
-  private static class TestPayloadEntry implements PayloadTable.Entry {
+  protected static class TestPayloadEntry implements PayloadTable.Entry {
     private final TopicId topicId;
     private final int generation;
     private final String payload;
@@ -145,7 +226,7 @@ public abstract class TTLCleanupTest {
     private final long writeTimestamp;
     private final short seqId;
 
-    TestPayloadEntry(TopicId topicId, int generation, String payload, long txWritePtr, short seqId) {
+    public TestPayloadEntry(TopicId topicId, int generation, String payload, long txWritePtr, short seqId) {
       this.topicId = topicId;
       this.generation = generation;
       this.payload = payload;

@@ -66,9 +66,9 @@ public final class LevelDBTableFactory implements TableFactory {
       .errorIfExists(false)
       .createIfMissing(true);
     this.executor = Executors.newSingleThreadScheduledExecutor(
-      Threads.createDaemonThreadFactory("leveldb-tms-ttl-pruner"));
-    this.executor.scheduleAtFixedRate(new TTLCleanup(), 0L,
-                                      Long.parseLong(cConf.get(Constants.MessagingSystem.LOCAL_TTL_CLEANUP_FREQUENCY)),
+      Threads.createDaemonThreadFactory("leveldb-tms-data-cleanup"));
+    this.executor.scheduleAtFixedRate(new DataCleanup(), 0L,
+                                      Long.parseLong(cConf.get(Constants.MessagingSystem.LOCAL_DATA_CLEANUP_FREQUENCY)),
                                       TimeUnit.SECONDS);
   }
 
@@ -115,7 +115,7 @@ public final class LevelDBTableFactory implements TableFactory {
     return dir;
   }
 
-  private class TTLCleanup implements Runnable {
+  private class DataCleanup implements Runnable {
 
     @Override
     public void run() {
@@ -132,7 +132,7 @@ public final class LevelDBTableFactory implements TableFactory {
           payloadTable.pruneMessages(metadata, timeStamp);
         }
       } catch (IOException | TopicNotFoundException ex) {
-        LOG.debug("Unable to perform TTL cleanup in TMS LevelDB tables", ex);
+        LOG.debug("Unable to perform data cleanup in TMS LevelDB tables", ex);
       }
     }
   }

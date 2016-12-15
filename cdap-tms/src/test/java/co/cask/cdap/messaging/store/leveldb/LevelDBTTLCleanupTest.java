@@ -21,7 +21,7 @@ import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.messaging.store.MessageTable;
 import co.cask.cdap.messaging.store.MetadataTable;
 import co.cask.cdap.messaging.store.PayloadTable;
-import co.cask.cdap.messaging.store.TTLCleanupTest;
+import co.cask.cdap.messaging.store.DataCleanupTest;
 import co.cask.cdap.messaging.store.TableFactory;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Tests for TTL Cleanup logic in LevelDB.
  */
-public class LevelDBTTLCleanupTest extends TTLCleanupTest {
+public class LevelDBTTLCleanupTest extends DataCleanupTest {
 
   @ClassRule
   public static TemporaryFolder tmpFolder = new TemporaryFolder();
@@ -43,7 +43,7 @@ public class LevelDBTTLCleanupTest extends TTLCleanupTest {
   @BeforeClass
   public static void init() throws IOException {
     CConfiguration cConf = CConfiguration.create();
-    cConf.set(Constants.MessagingSystem.LOCAL_TTL_CLEANUP_FREQUENCY, Long.toString(1));
+    cConf.set(Constants.MessagingSystem.LOCAL_DATA_CLEANUP_FREQUENCY, Long.toString(1));
     cConf.set(Constants.CFG_LOCAL_DATA_DIR, tmpFolder.newFolder().getAbsolutePath());
     tableFactory = new LevelDBTableFactory(cConf);
   }

@@ -22,10 +22,12 @@ import co.cask.cdap.common.guice.ConfigModule;
 import co.cask.cdap.common.guice.LocationRuntimeModule;
 import co.cask.cdap.common.guice.NamespaceClientUnitTestModule;
 import co.cask.cdap.data.hbase.HBaseTestBase;
+import co.cask.cdap.data2.util.hbase.ConfigurationTable;
 import co.cask.cdap.data2.util.hbase.HBaseTableUtil;
 import co.cask.cdap.data2.util.hbase.HBaseTableUtilFactory;
 import co.cask.cdap.messaging.store.MessageTable;
 import co.cask.cdap.messaging.store.MessageTableTest;
+import co.cask.cdap.messaging.store.MetadataTable;
 import co.cask.cdap.messaging.store.TableFactory;
 import co.cask.cdap.proto.id.NamespaceId;
 import com.google.inject.Guice;
@@ -73,17 +75,26 @@ public class HBaseMessageTableTestRun extends MessageTableTest {
 
     LocationFactory locationFactory = getInjector().getInstance(LocationFactory.class);
     tableFactory = new HBaseTableFactory(cConf, hBaseAdmin.getConfiguration(), tableUtil, locationFactory);
+
+    ConfigurationTable configTable = new ConfigurationTable(hConf);
+    configTable.write(ConfigurationTable.Type.DEFAULT, cConf);
   }
 
   @AfterClass
   public static void teardownAfterClass() throws Exception {
     tableUtil.deleteAllInNamespace(hBaseAdmin, tableUtil.getHBaseNamespace(NamespaceId.SYSTEM));
     tableUtil.deleteNamespaceIfExists(hBaseAdmin, tableUtil.getHBaseNamespace(NamespaceId.SYSTEM));
+    hBaseAdmin.close();
   }
 
   @Override
   protected MessageTable getMessageTable() throws Exception {
-    return tableFactory.createMessageTable("message");
+    return tableFactory.createMessageTable(cConf.get(Constants.MessagingSystem.MESSAGE_TABLE_NAME));
+  }
+
+  @Override
+  protected MetadataTable getMetadataTable() throws Exception {
+    return tableFactory.createMetadataTable(cConf.get(Constants.MessagingSystem.METADATA_TABLE_NAME));
   }
 
   public static Injector getInjector() {

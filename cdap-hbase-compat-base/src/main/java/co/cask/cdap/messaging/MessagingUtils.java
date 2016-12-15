@@ -36,6 +36,7 @@ public final class MessagingUtils {
     public static final String DEFAULT_GENERATION = Integer.toString(1);
     public static final byte[] COLUMN_FAMILY = {'d'};
     public static final byte[] METADATA_COLUMN = Bytes.toBytes("m");
+    public static final String GENERATION_KEY = "generation";
     public static final String TTL_KEY = "ttl";
     public static final byte[] TX_COL = Bytes.toBytes('t');
     public static final byte[] PAYLOAD_COL = Bytes.toBytes('p');
@@ -142,5 +143,18 @@ public final class MessagingUtils {
    */
   public static long getPublishTimestamp(byte[] messageTableRowKey, int offset, int rowKeyLength) {
     return Bytes.toLong(messageTableRowKey, offset + getTopicLengthMessageEntry(rowKeyLength));
+  }
+
+  /**
+   * Determine if the data generation is older compared to the current generation
+   *
+   * @param dataGeneration generation that data belongs to
+   * @param currGeneration generation of the topic
+   * @return true if the data generation is older
+   */
+  public static boolean isOlderGeneration(int dataGeneration, int currGeneration) {
+    boolean prevGeneration = dataGeneration < Math.abs(currGeneration);
+    boolean deletedGeneration = (currGeneration < 0) && (dataGeneration == Math.abs(currGeneration));
+    return prevGeneration || deletedGeneration;
   }
 }

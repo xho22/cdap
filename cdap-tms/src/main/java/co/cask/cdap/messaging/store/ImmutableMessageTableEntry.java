@@ -36,7 +36,6 @@ public final class ImmutableMessageTableEntry implements MessageTable.Entry {
 
   public ImmutableMessageTableEntry(byte[] row, @Nullable byte[] payload, @Nullable byte[] txPtr) {
     int topicLength = MessagingUtils.getTopicLengthMessageEntry(row.length);
-    this.payload = payload;
     this.publishTimestamp = Bytes.toLong(row, topicLength);
     this.sequenceId = Bytes.toShort(row, topicLength + Bytes.SIZEOF_LONG);
     this.transactional = (txPtr != null);
@@ -45,6 +44,7 @@ public final class ImmutableMessageTableEntry implements MessageTable.Entry {
     this.generation = Bytes.toInt(row, row.length - Bytes.SIZEOF_SHORT - Bytes.SIZEOF_LONG - Bytes.SIZEOF_INT);
     this.topicId = MessagingUtils.toTopicId(row, 0, row.length - Bytes.SIZEOF_SHORT - Bytes.SIZEOF_LONG
       - Bytes.SIZEOF_INT);
+    this.payload = payload;
   }
 
   @Override

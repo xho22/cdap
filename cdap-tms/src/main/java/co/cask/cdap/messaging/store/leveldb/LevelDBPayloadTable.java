@@ -97,7 +97,7 @@ public class LevelDBPayloadTable extends AbstractPayloadTable {
   }
 
   /**
-   * Delete messages of a {@link TopicId} that has exceeded the TTL
+   * Delete messages of a {@link TopicId} that has exceeded the TTL or if it belongs to an older generation
    *
    * @param topicMetadata {@link TopicMetadata}
    * @param currentTime current timestamp
@@ -106,15 +106,29 @@ public class LevelDBPayloadTable extends AbstractPayloadTable {
   public void pruneMessages(TopicMetadata topicMetadata, long currentTime) throws IOException {
     WriteBatch writeBatch = levelDB.createWriteBatch();
     long ttlInMs = TimeUnit.SECONDS.toMillis(topicMetadata.getTTL());
-    byte[] startRow = MessagingUtils.toDataKeyPrefix(topicMetadata.getTopicId(), topicMetadata.getGeneration());
+    byte[] startRow = MessagingUtils.toDataKeyPrefix(topicMetadata.getTopicId(),
+                                                     Integer.parseInt(MessagingUtils.Constants.DEFAULT_GENERATION));
     byte[] stopRow = Bytes.stopKeyForPrefix(startRow);
 
     try (CloseableIterator<Map.Entry<byte[], byte[]>> rowIterator = new DBScanIterator(levelDB, startRow, stopRow)) {
       while (rowIterator.hasNext()) {
         Map.Entry<byte[], byte[]> entry = rowIterator.next();
         PayloadTable.Entry payloadTableEntry = new ImmutablePayloadTableEntry(entry.getKey(), entry.getValue());
-        if ((currentTime - payloadTableEntry.getPayloadWriteTimestamp()) > ttlInMs) {
+
+        int dataGeneration = payloadTableEntry.getGeneration();
+        int currGeneration = topicMetadata.getGeneration();
+        if (MessagingUtils.isOlderGeneration(dataGeneration, currGeneration)) {
           writeBatch.delete(entry.getKey());
+          continue;
+        }
+
+        if ((dataGeneration == Math.abs(currGeneration)) &&
+          ((currentTime - payloadTableEntry.getPayloadWriteTimestamp()) > ttlInMs)) {
+          writeBatch.delete(entry.getKey());
+        } else {
+          // terminate scanning table once an entry with write time after TTL is found, to avoid scanning whole table,
+          // since the entries are sorted by time.
+          break;
         }
       }
     }

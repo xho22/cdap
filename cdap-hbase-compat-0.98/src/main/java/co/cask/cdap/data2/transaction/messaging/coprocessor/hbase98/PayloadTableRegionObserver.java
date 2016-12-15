@@ -18,6 +18,7 @@ package co.cask.cdap.data2.transaction.messaging.coprocessor.hbase98;
 
 import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.common.conf.Constants;
+import co.cask.cdap.data2.transaction.queue.hbase.coprocessor.CConfigurationReader;
 import co.cask.cdap.data2.util.TableId;
 import co.cask.cdap.data2.util.hbase.HTable98NameConverter;
 import co.cask.cdap.data2.util.hbase.HTableNameConverter;
@@ -62,10 +63,11 @@ import java.util.concurrent.TimeUnit;
 /**
  * RegionObserver for the Payload Table of Transactional Messaging Service.
  *
- * This region observer does row eviction during flush time and compact time by using Time-To-Live (TTL) information
- * in MetadataTable to determine if a message has expired its TTL.
+ * This region observer does row eviction during flush time and compact time by using
  *
- * TODO: Add logic to remove data corresponding to invalidated transactions
+ * i) Time-To-Live (TTL) information in MetadataTable to determine if a message has expired its TTL.
+ * ii) Generation information in MetadataTable to determine if the message belongs to older generation.
+ *
  */
 public class PayloadTableRegionObserver extends BaseRegionObserver {
 
@@ -77,8 +79,9 @@ public class PayloadTableRegionObserver extends BaseRegionObserver {
   private static final byte[] COL = MessagingUtils.Constants.METADATA_COLUMN;
 
   private static int prefixLength;
-  private static LoadingCache<ByteBuffer, Long> topicCache;
+  private static LoadingCache<ByteBuffer, Map<String, String>> topicCache;
   private HTableInterface metadataTable;
+  private CConfigurationReader cConfReader;
 
   @Override
   public void start(CoprocessorEnvironment env) throws IOException {
@@ -92,18 +95,25 @@ public class PayloadTableRegionObserver extends BaseRegionObserver {
       HTableNameConverter nameConverter = new HTable98NameConverter();
       metadataTable = env.getTable(nameConverter.toTableName(hbaseNamespacePrefix,
                                                              TableId.from(metadataTableNamespace, metadataTableName)));
+      String sysConfigTablePrefix = nameConverter.getSysConfigTablePrefix(hbaseNamespacePrefix);
+      cConfReader = new CConfigurationReader(env.getConfiguration(), sysConfigTablePrefix);
+      final Long metadataCacheExpiry = Long.parseLong(cConfReader.read().get(
+        Constants.MessagingSystem.COPROCESSOR_METADATA_CACHE_EXPIRATION_SECONDS));
       topicCache = CacheBuilder.newBuilder()
-        .expireAfterWrite(2, TimeUnit.MINUTES)
+        .expireAfterWrite(metadataCacheExpiry, TimeUnit.SECONDS)
         .maximumSize(1000)
-        .build(new CacheLoader<ByteBuffer, Long>() {
+        .build(new CacheLoader<ByteBuffer, Map<String, String>>() {
 
           @Override
-          public Long load(ByteBuffer topicBytes) throws Exception {
+          public Map<String, String> load(ByteBuffer topicBytes) throws Exception {
             Get get = new Get(topicBytes.array());
             Result result = metadataTable.get(get);
             byte[] properties = result.getValue(COL_FAMILY, COL);
             Map<String, String> propertyMap = GSON.fromJson(Bytes.toString(properties), MAP_TYPE);
-            return TimeUnit.SECONDS.toMillis(Long.parseLong(propertyMap.get(MessagingUtils.Constants.TTL_KEY)));
+            String ttl = propertyMap.get(MessagingUtils.Constants.TTL_KEY);
+            Long ttlInMes = TimeUnit.SECONDS.toMillis(Long.parseLong(ttl));
+            propertyMap.put(MessagingUtils.Constants.TTL_KEY, Long.toString(ttlInMes));
+            return propertyMap;
           }
         });
     }
@@ -112,9 +122,9 @@ public class PayloadTableRegionObserver extends BaseRegionObserver {
   @Override
   public InternalScanner preFlushScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c, Store store,
                                              KeyValueScanner memstoreScanner, InternalScanner s) throws IOException {
-    LOG.info("preFlush, filter using TTLFilter");
+    LOG.info("preFlush, filter using PayloadDataFilter");
     Scan scan = new Scan();
-    scan.setFilter(new TTLFilter(c.getEnvironment(), System.currentTimeMillis()));
+    scan.setFilter(new PayloadDataFilter(c.getEnvironment(), System.currentTimeMillis()));
     return new StoreScanner(store, store.getScanInfo(), scan, Collections.singletonList(memstoreScanner),
                             ScanType.COMPACT_DROP_DELETES, store.getSmallestReadPoint(), HConstants.OLDEST_TIMESTAMP);
   }
@@ -124,21 +134,22 @@ public class PayloadTableRegionObserver extends BaseRegionObserver {
                                                List<? extends KeyValueScanner> scanners, ScanType scanType,
                                                long earliestPutTs, InternalScanner s,
                                                CompactionRequest request) throws IOException {
-    LOG.info("preCompact, filter using TTLFilter");
+    LOG.info("preCompact, filter using PayloadDataFilter");
     Scan scan = new Scan();
-    scan.setFilter(new TTLFilter(c.getEnvironment(), System.currentTimeMillis()));
+    scan.setFilter(new PayloadDataFilter(c.getEnvironment(), System.currentTimeMillis()));
     return new StoreScanner(store, store.getScanInfo(), scan, scanners, scanType, store.getSmallestReadPoint(),
                             earliestPutTs);
   }
 
-  private static final class TTLFilter extends FilterBase {
+  private static final class PayloadDataFilter extends FilterBase {
     private final RegionCoprocessorEnvironment env;
     private final long timestamp;
 
     private byte[] prevTopicIdBytes;
     private Long currentTTL;
+    private Integer currentGen;
 
-    TTLFilter(RegionCoprocessorEnvironment env, long timestamp) {
+    PayloadDataFilter(RegionCoprocessorEnvironment env, long timestamp) {
       this.env = env;
       this.timestamp = timestamp;
     }
@@ -148,16 +159,26 @@ public class PayloadTableRegionObserver extends BaseRegionObserver {
       int rowKeyOffset = cell.getRowOffset() + prefixLength;
       int sizeOfRowKey = cell.getRowLength() - prefixLength;
       long writeTimestamp = MessagingUtils.getWriteTimestamp(cell.getRowArray(), rowKeyOffset, sizeOfRowKey);
-      int topicIdLength = MessagingUtils.getTopicLengthPayloadEntry(sizeOfRowKey);
+      int topicIdLength = MessagingUtils.getTopicLengthPayloadEntry(sizeOfRowKey) - Bytes.SIZEOF_INT;
+      int generationId = Bytes.toInt(cell.getRowArray(), rowKeyOffset + topicIdLength);
+
       try {
-        if (prevTopicIdBytes == null || currentTTL == null ||
+        if (prevTopicIdBytes == null || currentTTL == null || currentGen == null ||
           (!org.apache.hadoop.hbase.util.Bytes.equals(prevTopicIdBytes, 0, prevTopicIdBytes.length,
                                                       cell.getRowArray(), rowKeyOffset, topicIdLength))) {
           prevTopicIdBytes = Arrays.copyOfRange(cell.getRowArray(), rowKeyOffset, rowKeyOffset + topicIdLength);
-          currentTTL = topicCache.get(ByteBuffer.wrap(prevTopicIdBytes));
+          Map<String, String> properties = topicCache.get(ByteBuffer.wrap(prevTopicIdBytes));
+          currentTTL = Long.parseLong(properties.get(MessagingUtils.Constants.TTL_KEY));
+          currentGen = Integer.parseInt(properties.get(MessagingUtils.Constants.GENERATION_KEY));
         }
 
-        if ((timestamp - writeTimestamp) > currentTTL) {
+        // Old Generation (or deleted current generation) cleanup
+        if (MessagingUtils.isOlderGeneration(generationId, currentGen)) {
+          return ReturnCode.SKIP;
+        }
+
+        // TTL expiration cleanup only if the generation of metadata and row key are the same
+        if ((generationId == Math.abs(currentGen)) && ((timestamp - writeTimestamp) > currentTTL)) {
           return ReturnCode.SKIP;
         }
       } catch (ExecutionException ex) {

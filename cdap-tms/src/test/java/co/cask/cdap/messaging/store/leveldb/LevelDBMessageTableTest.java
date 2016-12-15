@@ -20,6 +20,7 @@ import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.messaging.store.MessageTable;
 import co.cask.cdap.messaging.store.MessageTableTest;
+import co.cask.cdap.messaging.store.MetadataTable;
 import co.cask.cdap.messaging.store.TableFactory;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -47,5 +48,10 @@ public class LevelDBMessageTableTest extends MessageTableTest {
   @Override
   protected MessageTable getMessageTable() throws Exception {
     return tableFactory.createMessageTable("message");
+  }
+
+  @Override
+  protected MetadataTable getMetadataTable() throws Exception {
+    return tableFactory.createMetadataTable("metadata");
   }
 }

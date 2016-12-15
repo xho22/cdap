@@ -24,6 +24,7 @@ import co.cask.cdap.common.guice.LocationRuntimeModule;
 import co.cask.cdap.common.guice.NamespaceClientUnitTestModule;
 import co.cask.cdap.data.hbase.HBaseTestBase;
 import co.cask.cdap.data2.transaction.messaging.coprocessor.hbase98.MessageTableRegionObserver;
+import co.cask.cdap.data2.transaction.messaging.coprocessor.hbase98.PayloadTableRegionObserver;
 import co.cask.cdap.data2.util.TableId;
 import co.cask.cdap.data2.util.hbase.ConfigurationTable;
 import co.cask.cdap.data2.util.hbase.HBaseTableUtil;
@@ -32,7 +33,7 @@ import co.cask.cdap.messaging.TopicMetadata;
 import co.cask.cdap.messaging.store.MessageTable;
 import co.cask.cdap.messaging.store.MetadataTable;
 import co.cask.cdap.messaging.store.PayloadTable;
-import co.cask.cdap.messaging.store.TTLCleanupTest;
+import co.cask.cdap.messaging.store.DataCleanupTest;
 import co.cask.cdap.messaging.store.TableFactory;
 import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.proto.id.TopicId;
@@ -68,9 +69,11 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Tests for {@link HBaseMessageTable} coprocessor {@link MessageTableRegionObserver}.
+ * Tests for {@link MessageTableRegionObserver} and {@link PayloadTableRegionObserver} coprocessors.
  */
-public class HBaseMessageTTLCoprocessorTestRun extends TTLCleanupTest {
+public class HBaseTableCoprocessorTestRun extends DataCleanupTest {
+  private static final int GENERATION = 1;
+  private static final long CACHE_EXPIRY = 1;
 
   // 8 versions, 1 hour apart, latest is current ts.
   private static final long[] V;
@@ -82,7 +85,6 @@ public class HBaseMessageTTLCoprocessorTestRun extends TTLCleanupTest {
       V[i] = (now - TimeUnit.HOURS.toMillis(8 - i)) * TxConstants.MAX_TX_PER_MS;
     }
   }
-
 
   @ClassRule
   public static final ExternalResource TEST_BASE = HBaseMessageTestSuite.TEST_BASE;
@@ -105,6 +107,7 @@ public class HBaseMessageTTLCoprocessorTestRun extends TTLCleanupTest {
     cConf.set(Constants.CFG_LOCAL_DATA_DIR, TEMP_FOLDER.newFolder().getAbsolutePath());
     cConf.set(Constants.CFG_HDFS_NAMESPACE, cConf.get(Constants.CFG_LOCAL_DATA_DIR));
     cConf.set(Constants.CFG_HDFS_USER, System.getProperty("user.name"));
+    cConf.set(Constants.MessagingSystem.COPROCESSOR_METADATA_CACHE_EXPIRATION_SECONDS, Long.toString(CACHE_EXPIRY));
 
     hBaseAdmin = HBASE_TEST_BASE.getHBaseAdmin();
     hBaseAdmin.getConfiguration().set(HBaseTableUtil.CFG_HBASE_TABLE_COMPRESSION,
@@ -136,34 +139,48 @@ public class HBaseMessageTTLCoprocessorTestRun extends TTLCleanupTest {
   public void testInvalidTx() throws Exception {
     try (MetadataTable metadataTable = getMetadataTable();
          MessageTable messageTable = getMessageTable()) {
-      TopicId topicId = NamespaceId.DEFAULT.topic("t1");
-      TopicMetadata topic = new TopicMetadata(topicId, "ttl", "1000000");
+      TopicId topicId = NamespaceId.DEFAULT.topic("invalidTx");
+      TopicMetadata topic = new TopicMetadata(topicId, TopicMetadata.TTL_KEY, "1000000",
+                                              TopicMetadata.GENERATION_KEY, Integer.toString(GENERATION));
       metadataTable.createTopic(topic);
       List<MessageTable.Entry> entries = new ArrayList<>();
       long invalidTxWritePtr = invalidSet.get(0);
-      entries.add(new TestMessageEntry(topicId, "data", invalidTxWritePtr, (short) 0));
+      entries.add(new TestMessageEntry(topicId, GENERATION, "data", invalidTxWritePtr, (short) 0));
       messageTable.store(entries.iterator());
 
       // Fetch the entries and make sure we are able to read it
-      CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(topicId, 0, Integer.MAX_VALUE, null);
-      checkEntry(iterator, invalidTxWritePtr);
+      try (CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(topic, 0, Integer.MAX_VALUE, null)) {
+        checkEntry(iterator, invalidTxWritePtr);
+      }
 
       // Fetch the entries with tx and make sure we are able to read it
       Transaction tx = new Transaction(V[8], V[8], new long[0], new long[0], -1);
-      iterator = messageTable.fetch(topicId, 0, Integer.MAX_VALUE, tx);
-      checkEntry(iterator, invalidTxWritePtr);
+      try (CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(topic, 0, Integer.MAX_VALUE, tx)) {
+        checkEntry(iterator, invalidTxWritePtr);
+      }
 
       // Now run full compaction
       forceFlushAndCompact(Table.MESSAGE);
 
       // Try to fetch the entry non-transactionally and the entry should still be there
-      iterator = messageTable.fetch(topicId, 0, Integer.MAX_VALUE, null);
-      checkEntry(iterator, invalidTxWritePtr);
+      try (CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(topic, 0, Integer.MAX_VALUE, null)) {
+        checkEntry(iterator, invalidTxWritePtr);
+      }
 
       // Fetch the entries transactionally and we should see no entries returned
-      iterator = messageTable.fetch(topicId, 0, Integer.MAX_VALUE, tx);
-      Assert.assertFalse(iterator.hasNext());
-      iterator.close();
+      try (CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(topic, 0, Integer.MAX_VALUE, tx)) {
+        Assert.assertFalse(iterator.hasNext());
+      }
+      metadataTable.deleteTopic(topicId);
+
+      // Sleep so that the metadata cache expires
+      TimeUnit.SECONDS.sleep(CACHE_EXPIRY);
+      forceFlushAndCompact(Table.MESSAGE);
+
+      // Test deletion of messages from a deleted topic
+      try (CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(topic, 0, Integer.MAX_VALUE, null)) {
+        Assert.assertFalse(iterator.hasNext());
+      }
     }
   }
 
@@ -179,6 +196,7 @@ public class HBaseMessageTTLCoprocessorTestRun extends TTLCleanupTest {
   public static void teardownAfterClass() throws Exception {
     tableUtil.deleteAllInNamespace(hBaseAdmin, tableUtil.getHBaseNamespace(NamespaceId.SYSTEM));
     tableUtil.deleteNamespaceIfExists(hBaseAdmin, tableUtil.getHBaseNamespace(NamespaceId.SYSTEM));
+    hBaseAdmin.close();
   }
 
   @Override

@@ -70,6 +70,7 @@ public class HBaseMetadataTableTestRun extends MetadataTableTest {
   public static void teardownAfterClass() throws Exception {
     tableUtil.deleteAllInNamespace(hBaseAdmin, tableUtil.getHBaseNamespace(NamespaceId.SYSTEM));
     tableUtil.deleteNamespaceIfExists(hBaseAdmin, tableUtil.getHBaseNamespace(NamespaceId.SYSTEM));
+    hBaseAdmin.close();
   }
 
   @Override

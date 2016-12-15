@@ -1070,7 +1070,7 @@ public final class Constants {
    */
   public static final class MessagingSystem {
     public static final String LOCAL_DATA_DIR = "messaging.local.data.dir";
-    public static final String LOCAL_TTL_CLEANUP_FREQUENCY = "messaging.local.data.ttl.cleanup.frequency.secs";
+    public static final String LOCAL_DATA_CLEANUP_FREQUENCY = "messaging.local.data.cleanup.frequency.secs";
 
     public static final String HBASE_MAX_SCAN_THREADS = "messaging.hbase.max.scan.threads";
     public static final String METADATA_TABLE_NAME = "messaging.metadata.table.name";
@@ -1080,6 +1080,8 @@ public final class Constants {
     public static final String PAYLOAD_TABLE_HBASE_SPLITS = "messaging.payload.table.hbase.splits";
     public static final String TABLE_CACHE_EXPIRATION_SECONDS = "messaging.table.expiration.seconds";
     public static final String TOPIC_DEFAULT_TTL_SECONDS = "messaging.topic.default.ttl.seconds";
+    public static final String COPROCESSOR_METADATA_CACHE_EXPIRATION_SECONDS =
+      "messaging.coprocessor.metadata.cache.expiration.seconds";
 
     public static final String HTTP_SERVER_WORKER_THREADS = "messaging.http.server.worker.threads";
     public static final String HTTP_SERVER_EXECUTOR_THREADS = "messaging.http.server.executor.threads";
