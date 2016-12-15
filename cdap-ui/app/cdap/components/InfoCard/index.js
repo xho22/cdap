@@ -19,7 +19,10 @@ require('./InfoCard.less');
 var classNames = require('classnames');
 
 const propTypes = {
-  primaryText: PropTypes.string,
+  primaryText: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number
+  ]),
   secondaryText: PropTypes.string,
   superscriptText: PropTypes.string,
   isLoading: PropTypes.bool

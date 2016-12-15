@@ -51,6 +51,7 @@ class Management extends Component {
       version: '',
       loading: false,
       lastUpdated : 0,
+      uptime: 0,
       wizard : {
         actionIndex : null,
         actionType : null
@@ -67,21 +68,34 @@ class Management extends Component {
           for(let key in res){
             if(res.hasOwnProperty(key)){
               apps.push(key);
-              services.push({
-                name: T.translate(`features.Management.Component-Overview.headers.${key}`),
-                version: res[key].Version,
-                url: res[key].WebURL,
-                logs: res[key].LogsURL
-              });
+              if(key !== 'cdap'){
+                services.push({
+                  name: T.translate(`features.Management.Component-Overview.headers.${key}`),
+                  version: res[key].Version,
+                  url: res[key].WebURL,
+                  logs: res[key].LogsURL
+                });
+              } else {
+                this.setState({uptime: res[key].Uptime});
+                services.push({
+                  name: T.translate(`features.Management.Component-Overview.headers.${key}`)
+                });
+              }
             }
           }
           this.getServices(apps);
-          let current = apps[0];
-          this.setState({
-            application : current,
-            applications : apps,
-            services : services
-          });
+          if(!this.state.application){
+            this.setState({
+              application : apps[0],
+              applications : apps,
+              services : services
+            });
+          } else {
+            this.setState({
+              applications : apps,
+              services : services
+            });            
+          }
         }
       );
 
@@ -151,7 +165,6 @@ class Management extends Component {
   }
 
   setToContext(contextName) {
-
     if(this.state.application !== contextName){
 
       this.setState({
@@ -207,7 +220,7 @@ class Management extends Component {
             />
             <InfoCard
               isLoading={this.state.loading}
-              primaryText={dummyData.uptime.duration}
+              primaryText={this.state.uptime}
               secondaryText={T.translate('features.Management.Top.time-label')}
               superscriptText={dummyData.uptime.unit}
             />
