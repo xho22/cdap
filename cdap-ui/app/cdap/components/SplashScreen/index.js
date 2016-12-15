@@ -94,7 +94,7 @@ import T from 'i18n-react';
       <div className="card-header-splash">
         <h3>{cardTitle}</h3>
         <h3>{cardTitleTwo}</h3>
-        <span
+        <div
           className="fa fa-times"
           onClick={this.onClose}
         />
@@ -107,7 +107,6 @@ import T from 'i18n-react';
         <div className="splash-screen">
           <Card
             className="splash-screen-card"
-            closeable
             header={cardHeader}
           >
             <div className="text-center">
