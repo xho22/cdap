@@ -29,29 +29,23 @@ import T from 'i18n-react';
     this.props = props;
     this.state = {
       error: '',
-      showRegistration: window.CDAP_CONFIG.cdap.standaloneWebsiteSDKDownload,
       showSplashScreen: false,
-      registrationOpen: false,
-      videoOpen: false,
-      first: '',
-      last: '',
-      email: ''
+      videoOpen: false
     };
 
     this.doNotShowCheck;
+    this.onClose = this.onClose.bind(this);
     this.toggleVideo = this.toggleVideo.bind(this);
-    this.toggleRegistration = this.toggleRegistration.bind(this);
     this.toggleCheckbox = this.toggleCheckbox.bind(this);
-    this.firstOnChange = this.firstOnChange.bind(this);
-    this.lastOnChange = this.lastOnChange.bind(this);
-    this.emailOnChange = this.emailOnChange.bind(this);
   }
 
   componentWillMount() {
     MyUserStoreApi.get().subscribe((res) => {
       setTimeout(() => {
         this.setState({
-          showSplashScreen : window.CDAP_CONFIG.cdap.standaloneWebsiteSDKDownload && !window.CDAP_CONFIG.isEnterprise && !res.property["user-choice-hide-welcome-message"]
+          showSplashScreen : window.CDAP_CONFIG.cdap.standaloneWebsiteSDKDownload &&
+            !window.CDAP_CONFIG.isEnterprise &&
+            !res.property["user-choice-hide-welcome-message"]
         });
       }, 1000);
     });
@@ -69,11 +63,6 @@ import T from 'i18n-react';
         () => {},
         (err) => { this.setState({error: err}); }
       );
-  }
-  toggleRegistration(){
-    this.setState({
-      registrationOpen : !this.state.registrationOpen
-    });
   }
   onClose() {
     this.setState({
@@ -96,18 +85,22 @@ import T from 'i18n-react';
   toggleCheckbox() {
     this.doNotShowCheck = !this.doNotShowCheck;
   }
-  firstOnChange(e) {
-    this.setState({first : e.target.value});
-  }
-  lastOnChange(e) {
-    this.setState({last : e.target.value});
-  }
-  emailOnChange(e) {
-    this.setState({email : e.target.value});
-  }
   render() {
 
     let cardTitle = this.state.videoOpen ? '' : T.translate('features.SplashScreen.title');
+    let cardTitleTwo = this.state.videoOpen ? '' : T.translate('features.SplashScreen.titleTwo');
+
+    let cardHeader = (
+      <div className="card-header-splash">
+        <h3>{cardTitle}</h3>
+        <h3>{cardTitleTwo}</h3>
+        <span
+          className="fa fa-times"
+          onClick={this.onClose}
+        />
+      </div>
+    );
+
     return (
       <div className={!this.state.showSplashScreen ? 'hide' : ''}>
         <div className="splash-screen-backdrop"></div>
@@ -115,68 +108,48 @@ import T from 'i18n-react';
           <Card
             className="splash-screen-card"
             closeable
-            title={cardTitle}
-            onClose={this.onClose.bind(this)}
+            header={cardHeader}
           >
             <div className="text-center">
-            <div className="splash-main-container">
-            {
-              this.state.videoOpen ?
-                <div className="cask-video-container">
-                  <CaskVideo />
-                </div>
-              :
-                <div>
-                  <span className="fa fa-5x icon-fist"></span>
-                  <div className="version-label">
-                    {T.translate('features.SplashScreen.version-label')}
+              <div className="splash-main-container">
+              {
+                this.state.videoOpen ?
+                  <div className="cask-video-container">
+                    <CaskVideo />
                   </div>
-                  <h4>
-                    {T.translate('features.SplashScreen.intro-message')}
-                  </h4>
-                </div>
-            }
-            </div>
-
+                :
+                  <div>
+                    <img width="100px" src="cdap_assets/img/cdaplogo_white.png" />
+                    <div className="version-label">
+                      {T.translate('features.SplashScreen.version-label')}
+                    </div>
+                    <h4>
+                      {T.translate('features.SplashScreen.intro-message')}
+                    </h4>
+                  </div>
+              }
+              </div>
               <br />
-              <div className={this.state.showRegistration ? 'group' : 'group no-registration'}>
+              <div className={'group'}>
                 <a className="spash-screen-btn" target="_blank" href="http://docs.cask.co/cdap">
                   <div className="btn btn-default">
                     <span className="fa fa-book btn-icon"></span>{T.translate('features.SplashScreen.buttons.getStarted')}
                   </div>
                 </a>
                 <div
-                  className={this.state.showRegistration ? 'btn btn-default spash-screen-btn' : 'hide'}
+                  className={'btn btn-default spash-screen-btn'}
                   onClick={this.toggleVideo}
                 >
                   <span className="fa fa-youtube-play btn-icon"></span>{T.translate('features.SplashScreen.buttons.introduction')}
                 </div>
-                <div
-                  className={this.state.showRegistration ? 'btn btn-default spash-screen-btn' : 'hide'}
-                  onClick={this.toggleRegistration}
-                >
-                  <span className="fa fa-pencil-square btn-icon"></span>{"Registration"}
-                </div>
-              </div>
-              {
-                this.state.showRegistration && this.state.registrationOpen ?
-                  <div>
-                    <div className="registration-form">
-                      <div>
-                          {T.translate('features.SplashScreen.registration-zero')}
-                          <input onChange={this.firstOnChange} autoFocus className="first-name" type="text" name="first" id="first" placeholder={T.translate('features.SplashScreen.first-placeholder')} />
-                          <input onChange={this.lastOnChange} className="last-name" type="text" name="last" id="last" placeholder={T.translate('features.SplashScreen.last-placeholder')} />
-                          {T.translate('features.SplashScreen.registration-one')}
-                          <div className="second-line-form">
-                            {T.translate('features.SplashScreen.registration-two')}
-                            <input onChange={this.emailOnChange} className="email" type="email" name="email" id="email" placeholder={T.translate('features.SplashScreen.email-placeholder')} />
-                          </div>
-                      </div>
-                    </div>
+                <a target="_blank" href="http://cask.co/company/contact/#mailing-list">
+                  <div
+                    className={'btn btn-default spash-screen-btn'}
+                  >
+                    <span className="fa fa-pencil-square btn-icon" />{"Get Updates"}
                   </div>
-                :
-                  null
-              }
+                </a>
+              </div>
               <div className="splash-checkbox">
                 <input onChange={this.toggleCheckbox} type="checkbox" />
                 <span className="splash-checkbox-label"> {T.translate('features.SplashScreen.dontShow')} </span>
