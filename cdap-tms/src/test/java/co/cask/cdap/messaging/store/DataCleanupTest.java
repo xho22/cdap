@@ -169,20 +169,16 @@ public abstract class DataCleanupTest {
       }
 
       metadataTable.deleteTopic(topicId);
-      TopicMetadata oldTopic = topic;
-      topic = new TopicMetadata(topicId, TopicMetadata.TTL_KEY, "100000",
-                                TopicMetadata.GENERATION_KEY, Integer.toString(2));
-      metadataTable.createTopic(topic);
       // Sleep so that the metadata cache in coprocessor expires
       TimeUnit.SECONDS.sleep(1);
       forceFlushAndCompact(Table.MESSAGE);
       forceFlushAndCompact(Table.PAYLOAD);
 
-      try (CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(oldTopic, 0, Integer.MAX_VALUE, null)) {
+      try (CloseableIterator<MessageTable.Entry> iterator = messageTable.fetch(topic, 0, Integer.MAX_VALUE, null)) {
         Assert.assertFalse(iterator.hasNext());
       }
 
-      try (CloseableIterator<PayloadTable.Entry> iterator = payloadTable.fetch(oldTopic, txWritePtr,
+      try (CloseableIterator<PayloadTable.Entry> iterator = payloadTable.fetch(topic, txWritePtr,
                                                                                new MessageId(messageId), true, 100)) {
         Assert.assertFalse(iterator.hasNext());
       }

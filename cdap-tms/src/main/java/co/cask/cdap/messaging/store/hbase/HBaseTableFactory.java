@@ -156,8 +156,7 @@ public final class HBaseTableFactory implements TableFactory {
         // since we use 'OneByteSimpleHash', we set the number of prefix bytes attribute to 1
         .setValue(Constants.MessagingSystem.HBASE_MESSAGING_TABLE_PREFIX_NUM_BYTES, Integer.toString(1))
         .setValue(Constants.MessagingSystem.KEY_DISTRIBUTOR_BUCKETS_ATTR, Integer.toString(splits))
-        .setValue(Constants.MessagingSystem.HBASE_METADATA_TABLE_NAMESPACE, metadataTableId.getNamespace())
-        .setValue(Constants.MessagingSystem.HBASE_METADATA_TABLE_NAME, metadataTableId.getTableName());
+        .setValue(Constants.MessagingSystem.HBASE_METADATA_TABLE_NAMESPACE, metadataTableId.getNamespace());
 
       addCoprocessor(coprocessor, htdBuilder);
       HTableDescriptor htd = htdBuilder.build();

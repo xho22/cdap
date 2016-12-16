@@ -16,7 +16,7 @@
 
 package co.cask.cdap.data2.transaction.messaging.coprocessor.hbase98;
 
-import co.cask.cdap.api.common.Bytes;
+import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.data2.transaction.coprocessor.DefaultTransactionStateCacheSupplier;
 import co.cask.cdap.data2.transaction.queue.hbase.coprocessor.CConfigurationReader;
@@ -51,6 +51,7 @@ import org.apache.hadoop.hbase.regionserver.ScanType;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreScanner;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.tephra.coprocessor.TransactionStateCache;
 import org.apache.tephra.persist.TransactionVisibilityState;
 
@@ -61,9 +62,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 
 /**
  * RegionObserver for the Message Table of Transactional Messaging Service.
@@ -79,14 +80,14 @@ public class MessageTableRegionObserver extends BaseRegionObserver {
 
   private static final Log LOG = LogFactory.getLog(MessageTableRegionObserver.class);
   private static final Gson GSON = new Gson();
-  private static final Type MAP_TYPE = new TypeToken<SortedMap<String, String>>() { }.getType();
+  private static final Type MAP_TYPE = new TypeToken<Map<String, String>>() { }.getType();
 
   private static final byte[] COL_FAMILY = MessagingUtils.Constants.COLUMN_FAMILY;
   private static final byte[] COL = MessagingUtils.Constants.METADATA_COLUMN;
 
-  private static int prefixLength;
-  private static LoadingCache<ByteBuffer, Map<String, String>> topicCache;
-  private static TransactionStateCache txStateCache;
+  private int prefixLength;
+  private LoadingCache<ByteBuffer, Map<String, String>> topicCache;
+  private TransactionStateCache txStateCache;
 
   private HTableInterface metadataTable;
   private CConfigurationReader cConfReader;
@@ -96,16 +97,20 @@ public class MessageTableRegionObserver extends BaseRegionObserver {
     if (env instanceof RegionCoprocessorEnvironment) {
       HTableDescriptor tableDesc = ((RegionCoprocessorEnvironment) env).getRegion().getTableDesc();
       String metadataTableNamespace = tableDesc.getValue(Constants.MessagingSystem.HBASE_METADATA_TABLE_NAMESPACE);
-      String metadataTableName = tableDesc.getValue(Constants.MessagingSystem.HBASE_METADATA_TABLE_NAME);
       String hbaseNamespacePrefix = tableDesc.getValue(Constants.Dataset.TABLE_PREFIX);
-      prefixLength = Integer.valueOf(tableDesc.getValue(
-        Constants.MessagingSystem.HBASE_MESSAGING_TABLE_PREFIX_NUM_BYTES));
+
       HTableNameConverter nameConverter = new HTable98NameConverter();
-      metadataTable = env.getTable(nameConverter.toTableName(hbaseNamespacePrefix,
-                                                             TableId.from(metadataTableNamespace, metadataTableName)));
       String sysConfigTablePrefix = nameConverter.getSysConfigTablePrefix(hbaseNamespacePrefix);
       cConfReader = new CConfigurationReader(env.getConfiguration(), sysConfigTablePrefix);
-      final Long metadataCacheExpiry = Long.parseLong(cConfReader.read().get(
+      CConfiguration cConf = cConfReader.read();
+      String metadataTableName = cConf.get(Constants.MessagingSystem.METADATA_TABLE_NAME);
+
+      prefixLength = Integer.valueOf(tableDesc.getValue(
+        Constants.MessagingSystem.HBASE_MESSAGING_TABLE_PREFIX_NUM_BYTES));
+
+      metadataTable = env.getTable(nameConverter.toTableName(hbaseNamespacePrefix,
+                                                             TableId.from(metadataTableNamespace, metadataTableName)));
+      final Long metadataCacheExpiry = Long.parseLong(cConf.get(
         Constants.MessagingSystem.COPROCESSOR_METADATA_CACHE_EXPIRATION_SECONDS));
       topicCache = CacheBuilder.newBuilder()
         .expireAfterWrite(metadataCacheExpiry, TimeUnit.SECONDS)
@@ -114,12 +119,14 @@ public class MessageTableRegionObserver extends BaseRegionObserver {
 
           @Override
           public Map<String, String> load(ByteBuffer topicBytes) throws Exception {
-            Get get = new Get(topicBytes.array());
+            byte[] getBytes = topicBytes.array().length == topicBytes.remaining() ?
+              topicBytes.array() : Bytes.toBytes(topicBytes);
+            Get get = new Get(getBytes);
             Result result = metadataTable.get(get);
             byte[] properties = result.getValue(COL_FAMILY, COL);
             Map<String, String> propertyMap = GSON.fromJson(Bytes.toString(properties), MAP_TYPE);
             String ttl = propertyMap.get(MessagingUtils.Constants.TTL_KEY);
-            Long ttlInMs = TimeUnit.SECONDS.toMillis(Long.parseLong(ttl));
+            long ttlInMs = TimeUnit.SECONDS.toMillis(Long.parseLong(ttl));
             propertyMap.put(MessagingUtils.Constants.TTL_KEY, Long.toString(ttlInMs));
             return propertyMap;
           }
@@ -135,10 +142,15 @@ public class MessageTableRegionObserver extends BaseRegionObserver {
   public InternalScanner preFlushScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c, Store store,
                                              KeyValueScanner memstoreScanner, InternalScanner s) throws IOException {
     LOG.info("preFlush, filter using MessageDataFilter");
+    TransactionVisibilityState txVisibilityState = txStateCache.getLatestState();
     Scan scan = new Scan();
-    scan.setFilter(new MessageDataFilter(c.getEnvironment(), System.currentTimeMillis()));
-    return new StoreScanner(store, store.getScanInfo(), scan, Collections.singletonList(memstoreScanner),
-                            ScanType.COMPACT_DROP_DELETES, store.getSmallestReadPoint(), HConstants.OLDEST_TIMESTAMP);
+    scan.setFilter(new MessageDataFilter(c.getEnvironment(), System.currentTimeMillis(),
+                                         prefixLength, topicCache, txVisibilityState));
+    return new LoggingInternalScanner("MessageDataFilter", "preFlush",
+                                      new StoreScanner(store, store.getScanInfo(), scan,
+                                                       Collections.singletonList(memstoreScanner),
+                                                       ScanType.COMPACT_DROP_DELETES, store.getSmallestReadPoint(),
+                                                       HConstants.OLDEST_TIMESTAMP), txVisibilityState);
   }
 
   @Override
@@ -147,10 +159,13 @@ public class MessageTableRegionObserver extends BaseRegionObserver {
                                                long earliestPutTs, InternalScanner s,
                                                CompactionRequest request) throws IOException {
     LOG.info("preCompact, filter using MessageDataFilter");
+    TransactionVisibilityState txVisibilityState = txStateCache.getLatestState();
     Scan scan = new Scan();
-    scan.setFilter(new MessageDataFilter(c.getEnvironment(), System.currentTimeMillis()));
-    return new StoreScanner(store, store.getScanInfo(), scan, scanners, scanType, store.getSmallestReadPoint(),
-                            earliestPutTs);
+    scan.setFilter(new MessageDataFilter(c.getEnvironment(), System.currentTimeMillis(),
+                   prefixLength, topicCache, txVisibilityState));
+    return new LoggingInternalScanner("MessageDataFilter", "preCompact",
+                                      new StoreScanner(store, store.getScanInfo(), scan, scanners, scanType,
+                                                       store.getSmallestReadPoint(), earliestPutTs), txVisibilityState);
   }
 
   private Supplier<TransactionStateCache> getTransactionStateCacheSupplier(String tablePrefix, Configuration conf) {
@@ -158,19 +173,60 @@ public class MessageTableRegionObserver extends BaseRegionObserver {
     return new DefaultTransactionStateCacheSupplier(sysConfigTablePrefix, conf);
   }
 
+  private static final class LoggingInternalScanner implements InternalScanner {
+    private static final Log LOG = LogFactory.getLog(LoggingInternalScanner.class);
+
+    private final String filterName;
+    private final String operation;
+    private final InternalScanner delegate;
+    private final TransactionVisibilityState state;
+
+    LoggingInternalScanner(String filterName, String operation, InternalScanner delegate,
+                           @Nullable TransactionVisibilityState state) {
+      this.filterName = filterName;
+      this.operation = operation;
+      this.delegate = delegate;
+      this.state = state;
+    }
+
+    @Override
+    public boolean next(List<Cell> results) throws IOException {
+      return delegate.next(results);
+    }
+
+    @Override
+    public boolean next(List<Cell> result, int limit) throws IOException {
+      return delegate.next(result, limit);
+    }
+
+    @Override
+    public void close() throws IOException {
+      if (state != null) {
+        LOG.info("During " + operation + ", Filter " + filterName + " completed using tx.snapshot of timestamp "
+                   + state.getTimestamp() + " which had the visibility bound of " + state.getVisibilityUpperBound());
+      }
+      delegate.close();
+    }
+  }
+
   private static final class MessageDataFilter extends FilterBase {
     private final RegionCoprocessorEnvironment env;
     private final long timestamp;
     private final TransactionVisibilityState state;
+    private final int prefixLength;
+    private final LoadingCache<ByteBuffer, Map<String, String>> topicCache;
 
     private byte[] prevTopicIdBytes;
     private Long currentTTL;
     private Integer currentGen;
 
-    MessageDataFilter(RegionCoprocessorEnvironment env, long timestamp) {
+    MessageDataFilter(RegionCoprocessorEnvironment env, long timestamp, int prefixLength, LoadingCache<ByteBuffer,
+      Map<String, String>> topicCache, @Nullable TransactionVisibilityState state) {
       this.env = env;
       this.timestamp = timestamp;
-      this.state = txStateCache.getLatestState();
+      this.prefixLength = prefixLength;
+      this.topicCache = topicCache;
+      this.state = state;
     }
 
     @Override
@@ -183,8 +239,8 @@ public class MessageTableRegionObserver extends BaseRegionObserver {
 
       try {
         if (prevTopicIdBytes == null || currentTTL == null || currentGen == null ||
-          (!org.apache.hadoop.hbase.util.Bytes.equals(prevTopicIdBytes, 0, prevTopicIdBytes.length,
-                                                      cell.getRowArray(), rowKeyOffset, topicIdLength))) {
+          (!Bytes.equals(prevTopicIdBytes, 0, prevTopicIdBytes.length,
+                         cell.getRowArray(), rowKeyOffset, topicIdLength))) {
           prevTopicIdBytes = Arrays.copyOfRange(cell.getRowArray(), rowKeyOffset, rowKeyOffset + topicIdLength);
           Map<String, String> properties = topicCache.get(ByteBuffer.wrap(prevTopicIdBytes));
           currentTTL = Long.parseLong(properties.get(MessagingUtils.Constants.TTL_KEY));
@@ -197,12 +253,14 @@ public class MessageTableRegionObserver extends BaseRegionObserver {
         }
 
         // TTL expiration cleanup only if the generation of metadata and row key are the same
-        if ((generationId == Math.abs(currentGen)) && ((timestamp - publishTimestamp) > currentTTL)) {
+        if ((generationId == currentGen) && ((timestamp - publishTimestamp) > currentTTL)) {
           return ReturnCode.SKIP;
         }
       } catch (ExecutionException ex) {
-        LOG.debug("Region " + env.getRegion().getRegionNameAsString() + ", exception while" +
-                    "trying to fetch properties of topicId {}" + MessagingUtils.toTopicId(prevTopicIdBytes), ex);
+        LOG.info("Region " + env.getRegion().getRegionNameAsString() + ", exception while" +
+                   "trying to fetch properties of topicId " + MessagingUtils.toTopicId(prevTopicIdBytes)
+                   + "\n" + ex.getMessage());
+        LOG.debug("StackTrace: ", ex);
       }
       return ReturnCode.INCLUDE;
     }
@@ -211,8 +269,8 @@ public class MessageTableRegionObserver extends BaseRegionObserver {
     public Cell transformCell(Cell cell) throws IOException {
       // Rollback expired/invalidated transactions
       byte[] txCol = MessagingUtils.Constants.TX_COL;
-      if (org.apache.hadoop.hbase.util.Bytes.equals(cell.getQualifierArray(), cell.getQualifierOffset(),
-                                                    cell.getQualifierLength(), txCol, 0, txCol.length)) {
+      if (Bytes.equals(cell.getQualifierArray(), cell.getQualifierOffset(), cell.getQualifierLength(),
+                       txCol, 0, txCol.length)) {
         // This is a TX COL
         long txWritePtr = Bytes.toLong(cell.getValueArray(), cell.getValueOffset());
         if (txWritePtr > 0 && state != null && state.getInvalid().contains(txWritePtr)) {

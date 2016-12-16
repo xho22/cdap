@@ -1112,9 +1112,8 @@ public final class Constants {
     // The name of the HBase table attribute to store the bucket size being used by the RowKeyDistributor
     public static final String KEY_DISTRIBUTOR_BUCKETS_ATTR = "cdap.messaging.key.distributor.buckets";
 
-    // TMS HBase table attribute that indicates the name of the TMS metadata table's HBase namespace and name
+    // TMS HBase table attribute that indicates the name of the TMS metadata table's HBase namespace
     public static final String HBASE_METADATA_TABLE_NAMESPACE = "cdap.messaging.metadata.hbase.namespace";
-    public static final String HBASE_METADATA_TABLE_NAME = "cdap.messaging.metadata.table.name";
 
     // TMS HBase table attribute that indicates the number of prefix bytes used for the row key
     public static final String HBASE_MESSAGING_TABLE_PREFIX_NUM_BYTES = "cdap.messaging.table.prefix.num.bytes";

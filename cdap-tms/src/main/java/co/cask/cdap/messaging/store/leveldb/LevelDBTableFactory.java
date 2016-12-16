@@ -16,7 +16,7 @@
 
 package co.cask.cdap.messaging.store.leveldb;
 
-import co.cask.cdap.api.messaging.TopicNotFoundException;
+import co.cask.cdap.api.dataset.lib.CloseableIterator;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.utils.DirUtils;
@@ -26,7 +26,6 @@ import co.cask.cdap.messaging.store.MetadataTable;
 import co.cask.cdap.messaging.store.PayloadTable;
 import co.cask.cdap.messaging.store.TableFactory;
 import co.cask.cdap.proto.id.NamespaceId;
-import co.cask.cdap.proto.id.TopicId;
 import com.google.inject.Inject;
 import org.apache.twill.common.Threads;
 import org.iq80.leveldb.Options;
@@ -36,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -124,14 +122,13 @@ public final class LevelDBTableFactory implements TableFactory {
       }
 
       long timeStamp = System.currentTimeMillis();
-      try {
-        List<TopicId> topicIdList = metadataTable.listTopics();
-        for (TopicId topicId : topicIdList) {
-          TopicMetadata metadata = metadataTable.getMetadata(topicId);
+      try (CloseableIterator<TopicMetadata> metadataIterator = metadataTable.scanTopics()) {
+        while (metadataIterator.hasNext()) {
+          TopicMetadata metadata = metadataIterator.next();
           messageTable.pruneMessages(metadata, timeStamp);
           payloadTable.pruneMessages(metadata, timeStamp);
         }
-      } catch (IOException | TopicNotFoundException ex) {
+      } catch (IOException ex) {
         LOG.debug("Unable to perform data cleanup in TMS LevelDB tables", ex);
       }
     }
