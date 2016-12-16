@@ -167,6 +167,12 @@ final class LevelDBMetadataTable implements MetadataTable {
     return listTopics(null, null);
   }
 
+  /**
+   * Returns an iterator of {@link TopicMetadata} of all the topics including the ones that were deleted.
+   *
+   * @return {@link CloseableIterator} of {@link TopicMetadata}
+   * @throws IOException if failed to scan topics
+   */
   public CloseableIterator<TopicMetadata> scanTopics() throws IOException {
     return scanTopics(null, null);
   }

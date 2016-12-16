@@ -110,8 +110,8 @@ public class MessageTableRegionObserver extends BaseRegionObserver {
 
       metadataTable = env.getTable(nameConverter.toTableName(hbaseNamespacePrefix,
                                                              TableId.from(metadataTableNamespace, metadataTableName)));
-      final Long metadataCacheExpiry = Long.parseLong(cConf.get(
-        Constants.MessagingSystem.COPROCESSOR_METADATA_CACHE_EXPIRATION_SECONDS));
+      final long metadataCacheExpiry = cConf.getLong(
+        Constants.MessagingSystem.COPROCESSOR_METADATA_CACHE_EXPIRATION_SECONDS);
       topicCache = CacheBuilder.newBuilder()
         .expireAfterWrite(metadataCacheExpiry, TimeUnit.SECONDS)
         .maximumSize(1000)
