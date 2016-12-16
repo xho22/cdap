@@ -268,8 +268,12 @@ features:
         name: Create
       create_artifact:
         name: Create
+      create_plugin_artifact:
+        name: Deploy
       informational:
         name: Download
+      deploy_app:
+        name: Deploy
       load_datapack:
         name: Load
   MarketPlaceEntity:
@@ -356,6 +360,7 @@ features:
       symbolName: Symbol Name
   Wizard:
     ApplicationUpload:
+      headerlabel: Upload Application
       Step1:
         description: Upload your application JAR
         shorttitle: Upload Application
