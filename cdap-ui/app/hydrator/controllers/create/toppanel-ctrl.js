@@ -219,8 +219,6 @@ class HydratorPlusPlusTopPanelCtrl{
     let previewConfig = {
       startStages: [],
       endStages: [],
-      // useSinks: [], // we are not using sinks for now
-      numOfRecords: 25,
       runTimeArguments: this.macrosMap
     };
 
