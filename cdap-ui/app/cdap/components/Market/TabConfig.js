@@ -59,6 +59,13 @@ const TabConfig = {
       name: T.translate('features.Market.tabs.examples'),
       content: <AllTabContents />
     },
+    {
+      id: 7,
+      filter: 'hydrator-plugin',
+      icon: 'fa fa-plug',
+      name: T.translate('features.Market.tabs.plugins'),
+      content: <AllTabContents />
+    },
     // {
     //   id: 5,
     //   filter: 'application',
