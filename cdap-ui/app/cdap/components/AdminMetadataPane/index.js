@@ -31,8 +31,11 @@ function AdminMetadataPane({ statObject }){
   let statsList = [];
 
   statObject.stats.forEach((stat) => {
+
+    //Ignore Stats Associated with WritePointer, ReadPointer, and VisibilityUpperBound
     if(!(stat.statName === 'WritePointer' || stat.statName === 'ReadPointer' || stat.statName === 'VisibilityUpperBound')) {
 
+      //Convert snapshot time to human readable number 
       if(stat.statName === 'SnapshotTime'){
         stat.statNum = humanReadableDate(Math.floor(stat.statNum.split(',').join('') / 1000000), true);
         console.log('snapshottime: ', stat.statNum);

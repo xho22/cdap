@@ -29,14 +29,9 @@ const propTypes = {
   isLoading: PropTypes.bool
 };
 
-function InfoCard({isLoading, primaryText, primaryLabel, secondaryText, superscriptText}) {
+function InfoCard({isLoading, primaryText, primaryLabel, secondaryText}) {
   return (
     <div className="info-card">
-      <div
-        className={classNames("superscript-text", {'hidden' : isLoading})}
-      >
-        {superscriptText}
-      </div>
       <i className={classNames("fa", "fa-spinner", "fa-spin", "fa-2x", {"hidden" : !isLoading})} />
       <div className={classNames("info-card-text", {'hidden' : isLoading})}>
         <div className="info-card-main-text">
