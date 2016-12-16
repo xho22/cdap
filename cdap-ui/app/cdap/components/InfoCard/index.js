@@ -23,13 +23,13 @@ const propTypes = {
     PropTypes.string,
     PropTypes.number
   ]),
+  primaryLabel: PropTypes.string,
   secondaryText: PropTypes.string,
   superscriptText: PropTypes.string,
   isLoading: PropTypes.bool
 };
 
-function InfoCard({isLoading, primaryText, secondaryText, superscriptText}) {
-
+function InfoCard({isLoading, primaryText, primaryLabel, secondaryText, superscriptText}) {
   return (
     <div className="info-card">
       <div
@@ -41,6 +41,9 @@ function InfoCard({isLoading, primaryText, secondaryText, superscriptText}) {
       <div className={classNames("info-card-text", {'hidden' : isLoading})}>
         <div className="info-card-main-text">
           {primaryText}
+        </div>
+        <div className="primary-label">
+          {primaryLabel}
         </div>
         <div className="info-card-secondary-text">
           {secondaryText}

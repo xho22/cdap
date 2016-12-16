@@ -28,17 +28,11 @@ import NamespaceStore from 'services/NamespaceStore';
 import {MyServiceProviderApi} from 'api/serviceproviders';
 import Mousetrap from 'mousetrap';
 import MyCDAPVersionApi from 'api/version.js';
+import moment from 'moment';
 
 import T from 'i18n-react';
 var shortid = require('shortid');
 var classNames = require('classnames');
-
-var dummyData = {
-  uptime: {
-    duration: '--',
-    unit: '-'
-  }
-};
 
 class Management extends Component {
 
@@ -76,7 +70,14 @@ class Management extends Component {
                   logs: res[key].LogsURL
                 });
               } else {
-                this.setState({uptime: res[key].Uptime});
+                //Uptime is attached to cdap response object
+                let uptime = res[key].Uptime;
+                let tempTime = moment.duration(uptime);
+                let days = tempTime.days() < 10 ? '0' + tempTime.days() : tempTime.days();
+                let hours = tempTime.hours() < 10 ? '0' + tempTime.hours() : tempTime.hours();
+                let minutes = tempTime.minutes() < 10 ? '0' + tempTime.minutes() : tempTime.minutes();
+                let time = `${days}:${hours}:${minutes}`;
+                this.setState({uptime: time});
                 services.push({
                   name: T.translate(`features.Management.Component-Overview.headers.${key}`)
                 });
@@ -94,7 +95,7 @@ class Management extends Component {
             this.setState({
               applications : apps,
               services : services
-            });            
+            });
           }
         }
       );
@@ -221,8 +222,8 @@ class Management extends Component {
             <InfoCard
               isLoading={this.state.loading}
               primaryText={this.state.uptime}
+              primaryLabel={'DAY HR MIN'}
               secondaryText={T.translate('features.Management.Top.time-label')}
-              superscriptText={dummyData.uptime.unit}
             />
             <ServiceLabel/>
             <ServiceStatusPanel
